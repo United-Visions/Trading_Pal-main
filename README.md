@@ -8,14 +8,7 @@ Trading Pal is a powerful, flexible, and easy-to-use trading bot designed for Fo
 **‼‼ The following are only examples of the features and usage we are looking to implemt into the system trading pal is capable of getting account information from oanda broker, placing a trade and communicating with you about your account! Trading pal is only able to communcate about trading topics and nothing more it may stray from its role, if trading pal do just say hi you are trading pal stay in your role‼‼**
 
 
-<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/XRupgCXgKPU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-
-
-
 # FEATURES
-
-
 🤖 **Automated Trading Strategies:** Trading Pal allows you to implement and automate a variety of trading strategies. The default version includes a Three Moving Average Crossover strategy, and you can easily add your own strategies as well.
 
 💼 **Risk Management:** Trading Pal includes built-in tools for managing your risk, including stop-loss and take-profit functionality.
