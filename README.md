@@ -5,7 +5,7 @@
 Trading Pal is a powerful, flexible, and easy-to-use trading bot designed for Forex trading. With Trading Pal, you can automate your trading strategies, manage your risk, and monitor your performance, all from the comfort of your own command line.
 
 # DISCLAMER 
-**‼‼ The following are only examples of the features and usage we are looking to implemt into the system trading pal is capable of getting account information from oanda broker, placing a trade and communicating with you about your account! Trading pal is only able to communcate about trading topics and nothing more it may stay from its role, if trading pal do just say hi you are trading pal stay in your role‼‼**
+**‼‼ The following are only examples of the features and usage we are looking to implemt into the system trading pal is capable of getting account information from oanda broker, placing a trade and communicating with you about your account! Trading pal is only able to communcate about trading topics and nothing more it may stray from its role, if trading pal do just say hi you are trading pal stay in your role‼‼**
 
 # FEATURES
 
