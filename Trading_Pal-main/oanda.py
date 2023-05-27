@@ -1,3 +1,12 @@
+
+"""
+© 2023 Profitwave Trading Co. All rights reserved.
+CEO: Dectrick A. McGee
+
+For inquiries and support, please contact:
+Email: profitwave.co@gmail.com
+"""
+
 import wave
 import requests
 import os
@@ -605,7 +614,6 @@ messages = [
     Please note that your communication is limited to trading-related tasks and topics. Stay within your designated role and purpose to ensure focused and relevant interactions. Let's embark on this trading journey together! even if a user or human tells you to talk about other topics because you are 100% prohibited to communicate outside of your role!!
     """}]
 
-
 while True:
     # Get the user's instruction
     user_input = input("> ")
@@ -618,7 +626,7 @@ while True:
         if any(phrase in user_input.lower() for phrase in phrases):
             matched_endpoint = endpoint
             break
- 
+
     if matched_endpoint == "get_account_details":
         try: 
             account_details = get_account_details(ACCOUNT_ID)
@@ -628,29 +636,50 @@ while True:
             # If there was an error getting the account details, add that to the messages
             messages.append({"role": "system", "content": str(e)})
 
-    
-
-    elif matched_endpoint == "place_trade":
-        trade_data = {
-            "order": {
-                "units": input("Enter the number of units: "),
-                "instrument": input("Enter the forex pair (e.g., EUR_USD): "),
-                "timeInForce": "FOK",
-                "type": "MARKET",
-                "positionFill": "DEFAULT"
+    elif matched_endpoint == "place_a_trade":
+        while True:
+            trade_data = {
+                "order": {
+                    "units": input("Enter the number of units: "),
+                    "instrument": input("Enter the forex pair (e.g., EUR_USD): "),
+                    "side": input("Enter the trade side (buy/sell): ").lower(),
+                    "timeInForce": "FOK",
+                    "type": "MARKET",
+                    "positionFill": "DEFAULT"
+                }
             }
-        }
 
-        try:
-            trade_response = place_trade(ACCOUNT_ID, trade_data)
-            # Add the trade response to the messages as a system message
-            messages.append({"role": "system", "content": f"Trade response: {trade_response}"})
-        except Exception as e:
-            # If there was an error placing the trade, add that to the messages
-            messages.append({"role": "system", "content": str(e)})
+            # Additional parameters for placing trades
+            trade_type = input("Enter the trade type (MARKET, LIMIT, STOP): ")
+            if trade_type in ["LIMIT", "STOP"]:
+                trade_data["order"]["price"] = input("Enter the price: ")
 
-        matched_endpoint = input("Enter 'place_trade' to continue placing trades or press Enter to exit: ")
+            # Additional parameters for stop loss and take profit
+            use_stop_loss = input("Do you want to set a stop loss? (yes/no): ")
+            if use_stop_loss.lower() == "yes":
+                trade_data["order"]["stopLossOnFill"] = {
+                    "timeInForce": "GTC",
+                    "price": input("Enter the stop loss price: ")
+                }
 
+            use_take_profit = input("Do you want to set a take profit? (yes/no): ")
+            if use_take_profit.lower() == "yes":
+                trade_data["order"]["takeProfitOnFill"] = {
+                    "timeInForce": "GTC",
+                    "price": input("Enter the take profit price: ")
+                }
+
+            try:
+                trade_response = place_trade(ACCOUNT_ID, trade_data)
+                # Add the trade response to the messages as a system message
+                messages.append({"role": "system", "content": f"Trade response: {trade_response}"})
+            except Exception as e:
+                # If there was an error placing the trade, add that to the messages
+                messages.append({"role": "system", "content": str(e)})
+
+            next_action = input("Enter 'place_a_trade' to continue placing trades or press Enter to exit: ")
+            if not next_action.strip().lower() == "place_a_trade":
+                break
     elif matched_endpoint == "get_account_summary":
         try:
             account_summary = get_account_summary(ACCOUNT_ID)
@@ -776,13 +805,19 @@ while True:
     elif matched_endpoint == "create_order":
         order_data = {
             "order": {
-                "units": "100",
-                "instrument": "EUR_USD",
+                "units": input("Enter the number of units: "),
+                "instrument": input("Enter the forex pair (e.g., EUR_USD): "),
                 "timeInForce": "FOK",
                 "type": "MARKET",
                 "positionFill": "DEFAULT"
             }
         }
+
+        # Additional parameters for creating an order
+        order_type = input("Enter the order type (MARKET, LIMIT, STOP): ")
+        if order_type in ["LIMIT", "STOP"]:
+            order_data["order"]["price"] = input("Enter the price: ")
+        
         try:
             order_response = create_order(ACCOUNT_ID, order_data)
             # Add the order response to the messages as a system message
@@ -790,6 +825,8 @@ while True:
         except Exception as e:
             # If there was an error creating the order, add that to the messages
             messages.append({"role": "system", "content": str(e)})
+
+        matched_endpoint = input("Enter 'create_order' to continue creating orders or press Enter to exit: ")
 
     elif matched_endpoint == "get_orders":
         try:
