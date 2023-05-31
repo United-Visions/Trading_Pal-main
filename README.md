@@ -65,7 +65,7 @@ Trading Pal will then ask for your risk management strategy. If you haven't set 
 
 ## Contributing
 
-Contributions to Trading Pal are welcome! Please see the [Trading_Pal-main\link-to-contributing-guide.md](contributing-guide) for more information.
+Contributions to Trading Pal are welcome! Please see the [(https://www.mytradinggpt.com/contribute)](contributing-guide) for more information.
 
 ## Security
 
