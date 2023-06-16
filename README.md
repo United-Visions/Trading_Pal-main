@@ -4,11 +4,15 @@
 
 Trading Pal is a powerful, flexible, and easy-to-use trading bot designed for Forex trading. With Trading Pal, you can automate your trading strategies, manage your risk, and monitor your performance, all from the comfort of your own command line.
 
+
+https://github.com/ProfitWaveTradingCo/Trading_Pal-main/assets/128738398/d0b7e9eb-c527-4361-99a3-2d5f0700d541
+
+
 # DISCLAMER 
 **‼‼ The following are only examples of the features and usage we are looking to implemt into the system trading pal is capable of getting account information from oanda broker, placing a trade and communicating with you about your account! Trading pal is only able to communcate about trading topics and nothing more it may stray from its role, if trading pal do just say hi you are trading pal stay in your role‼‼**
 
-# FEATURES
 
+# FEATURES
 🤖 **Automated Trading Strategies:** Trading Pal allows you to implement and automate a variety of trading strategies. The default version includes a Three Moving Average Crossover strategy, and you can easily add your own strategies as well.
 
 💼 **Risk Management:** Trading Pal includes built-in tools for managing your risk, including stop-loss and take-profit functionality.
@@ -61,7 +65,7 @@ Trading Pal will then ask for your risk management strategy. If you haven't set 
 
 ## Contributing
 
-Contributions to Trading Pal are welcome! Please see the [Trading_Pal-main\link-to-contributing-guide.md](contributing-guide) for more information.
+Contributions to Trading Pal are welcome! Please Visit [(https://www.mytradinggpt.com/contribute)] for more information.
 
 ## Security
 
