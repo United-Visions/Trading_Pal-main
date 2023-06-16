@@ -1,19 +1,33 @@
-import openai
-import requests
-import csv
-import os
-import ast
 
+"""
+© 2023 Profitwave Trading Co. All rights reserved.
+CEO: Dectrick A. McGee
+
+For inquiries and support, please contact:
+Email: profitwave.co@gmail.com
+"""
+
+import configparser
+import wave
+import requests
+import os
+import wave
+import boto3
+import winsound
 from words import trading_keywords, endpoint_phrases, messages, intents
+import openai
+# Read keys from config.ini
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # Set your Alpaca API keys
-ALPACA_API_KEY_ID = "ALPACA_API_KEY_ID"
-ALPACA_API_SECRET_KEY = "ALPACA_API_SECRET_KEY"
+ALPACA_API_KEY_ID = "PKJ4Y8XY6OR8XA5I2DNV"
+ALPACA_API_SECRET_KEY = "r8hZaySzleuflOXX2mI6r0CEZzRJZ9vLa19nEk6F"
 
 # Set the OpenAI API key
-OPENAI_API_KEY = "OPENAI_API_KEY"
+OPENAI_API_KEY = config.get('API_KEYS', 'OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
-
+MAX_TOKENS= 3055
 # Set the base URL for the Alpaca API
 BASE_URL = "https://paper-api.alpaca.markets"
 
@@ -27,6 +41,66 @@ headers = {
 # Maximum token limit for each conversation
 MAX_TOKENS = 4096
 
+# Initialize AWS Polly client
+AWS_ACCESS_KEY_ID = config.get('AWS_KEYS', 'AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config.get('AWS_KEYS', 'AWS_SECRET_ACCESS_KEY')
+AWS_REGION = config.get('AWS_KEYS', 'AWS_REGION')
+session = boto3.Session(
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+)
+
+polly_client = session.client('polly')
+
+# Function to convert text to speech using AWS Polly
+def text_to_speech(text):
+    response = polly_client.synthesize_speech(
+        Text=text,
+        OutputFormat="pcm",
+        VoiceId="Matthew"  # Provide the desired voice ID
+    )
+    audio = response['AudioStream'].read()
+
+    # Save the audio stream to a temporary WAV file
+    with wave.open(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav", 'wb') as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(16000)
+        wav_file.writeframes(audio)
+
+    # Play the audio using the winsound module
+    winsound.PlaySound(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav", winsound.SND_FILENAME)
+
+    # Remove the temporary WAV file
+    os.remove(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav")
+
+# Modify the printing statements to use text_to_speech function
+def print_with_voice(text):
+    print(text)
+    text_to_speech(text) 
+
+# Enhanced greeting message from ProfitWave
+greeting_message = """
+👋 Hello there! Welcome to the world of Trading Pal 1.0! 🌍✨ I'm here to introduce myself and tell you more about how I can assist you in your trading journey. Let's dive in! 🚀💼
+
+I, Trading Pal 1.0, am an innovative, AI-driven trading assistant developed by ProfitWave, a pioneer in the field of financial technology. 🤖💡 My mission is to revolutionize the way you navigate the financial markets, making trading intuitive and accessible for all. 💪💰
+
+Think of me as your personal guide in the trading world. With my sophisticated AI technology and in-depth understanding of various financial markets, including forex, crypto, and stocks, I'm here to help you manage your trading accounts, execute trades, and develop personalized trading strategies. 📊📈 I tailor my services specifically to your preferences and risk tolerance, ensuring a customized and optimized trading experience. 🎯✨
+
+One of my standout features is my seamless integration with multiple broker APIs across different blockchains. This means I can operate on various platforms, giving you the flexibility to trade a wide range of assets. Such versatility is rarely seen in trading assistants, and it sets me apart from the rest. 💪💻🌐
+
+🔓 However, my journey doesn't end with Trading Pal 1.0. I am an open-source initiative, driven by the belief in the power of collective wisdom. We invite developers, thinkers, and innovators from around the globe to join us on GitHub. Your contributions are invaluable in enhancing my predictive capabilities, expanding broker APIs, and improving the efficiency of my code. Together, we can shape the future of trading with AI. 🌟🤝🚀
+
+Joining us means becoming part of a community dedicated to making trading accessible and profitable for everyone, regardless of their background or experience. Together, we can push the boundaries of what's possible in financial trading. 🌈💼
+
+So, are you ready to embark on this thrilling journey with me? Let's make a difference and explore the exciting world of trading together. Welcome aboard, and let Trading Pal 1.0 be your trusted companion on this adventure! 🎉🤖💼
+"""
+
+# Print the enhanced greeting message with voice output
+print(greeting_message)
+
+
 # Function to check if user input is trading-related
 def is_trading_related(user_input):
     # Convert the user's input to lowercase
@@ -39,39 +113,15 @@ def is_trading_related(user_input):
 
     # If no trading keywords were found in the user's input, return False
     return False
-# Function to place a trade
-def place_trade(instrument, units, side):
-    url = f"{BASE_URL}/accounts/{ACCOUNT_ID}/orders"
-    payload = {
-        "order": {
-            "instrument": instrument,
-            "units": units,
-            "side": side,
-            "type": "MARKET"
-        }
-    }
-    response = requests.post(url, headers=headers, json=payload)
-    return response.json()
-# Enhanced greeting message from ProfitWave
-print("👋🌎 Welcome to the world of Trading Pal 1.0! 🎉🎉🎉")
-print("""
-ProfitWave, a pioneer in the field of financial technology, proudly presents Trading Pal 1.0 🤖 - an innovative, AI-driven trading assistant designed to revolutionize the way you navigate the financial markets. Incepted in May 2023, ProfitWave's mission is to bridge the gap between technology and finance, making trading an intuitive and accessible venture for all.
 
-Trading Pal 1.0, the brainchild of this mission, is a technological marvel 💎. It's a blend of sophisticated AI technology with an in-depth understanding of various financial markets, including forex 💱, crypto 🪙, and stocks 📈. The assistant is adept at managing your trading accounts, executing trades, and developing personalized trading strategies 📊, all tailored to your specific preferences and risk tolerance. 
+   
 
-One of the standout features of Trading Pal 1.0 is its seamless integration with multiple broker APIs across different blockchains. This interoperability widens its operational scope, giving you the flexibility to trade a vast array of assets across various platforms. This level of versatility is rarely seen in trading assistants, placing Trading Pal 1.0 in a league of its own.
 
-The creation of Trading Pal 1.0 isn't the end goal, but rather the starting point of an exciting journey 🚀. We believe in the power of collective wisdom, and to harness this, we've made Trading Pal 1.0 an open-source initiative. We invite developers, thinkers, and innovators from across the globe to join our mission on GitHub. Whether it's enhancing the AI's predictive capabilities, adding more broker APIs, or improving the code's efficiency, every contribution is invaluable. 
+                        
+                        #------------------------------
+                        #-       ENDPOINTS            -
+                        #------------------------------
 
-Your contributions will not only improve Trading Pal 1.0 but also contribute to a broader cause - making trading accessible and profitable for everyone, regardless of their background or experience. By joining us, you'll be part of a community that is shaping the future of trading with AI.
-
-So, are you ready to embark on this thrilling journey with us? Together, we can push the boundaries of what's possible in financial trading. Welcome aboard, and let's make a difference with Trading Pal 1.0! 💪💥🌟
-""")
-
-# Function to get the user's name
-def get_user_name():
-    user_name = input("Before we start, may I know your name? ")
-    return user_name
 
 
 def get_account(api_key, secret_key, base_url):
@@ -92,7 +142,7 @@ def get_orders(api_key, secret_key, base_url):
         return response.json()
     else:
         raise Exception(f"Failed to get orders. Status code: {response.status_code}")
-def place_order(api_key, secret_key, base_url, order_data):
+def place_trade(api_key, secret_key, base_url, order_data):
     url = f"{base_url}/v2/orders"
     headers = {'APCA-API-KEY-ID': api_key, 'APCA-API-SECRET-KEY': secret_key}
     
@@ -215,11 +265,19 @@ def get_order(order_id):
     else:
         raise Exception(f"Failed to get order {order_id}. Response: {response.text}")
 
-# Get the user's account ID
-ACCOUNT_ID = input("Please enter your account ID: ")
 
-# Call the function to get the user's name
- 
+
+
+                         #------------------------------
+                         #-         Trading            -
+                         #-        Strategies            -
+                         #------------------------------
+
+
+
+
+
+
 
 messages = [
     {"role": "system", "content": f"""
@@ -242,12 +300,6 @@ while True:
     # Check if the user's input is trading-related
     if is_trading_related(user_input):
         # Check if the user wants to execute a trading strategy
-        if "execute" in user_input.lower() and "trading strategy" in user_input.lower():
-            # Extract the strategy name from the user's input
-            strategy_name = user_input.split("execute")[1].split("trading strategy")[0].strip()
-            execute_trading_strategy(strategy_name)
-        else:
-            # Parse the user's instruction for any command
          matched_endpoint = None
 
     # Check if any of the phrases match the user's input for each endpoint
@@ -261,7 +313,7 @@ while True:
 
             if matched_endpoint == "get_account_details":
                 try:
-                    account_details = get_account (ACCOUNT_ID)
+                    account_details = get_account (headers)
                     messages.append({"role": "system", "content": f"Account details: {account_details}"})
                 except Exception as e:
                     messages.append({"role": "system", "content": str(e)})
@@ -290,7 +342,7 @@ while True:
             elif matched_endpoint == "get_order_details":
                 try:
                     order_id = 'your_order_id'  # replace with your order id
-                    order_details = get_order_details(order_id)
+                    order_details = get_order(order_id)
                     messages.append({"role": "system", "content": f"Order details: {order_details}"})
                 except Exception as e:
                     messages.append({"role": "system", "content": str(e)})
@@ -313,12 +365,19 @@ while True:
 
     else:
         messages.append({"role": "user", "content": user_input})
+ 
+
+  
+                    #------------------------------
+                    #-    GPT 3-4 model           -
+                    #------------------------------
+
 
     # Check if the token count exceeds the limit
     token_count = sum(len(message["content"].split()) for message in messages)
     if token_count >= MAX_TOKENS:
         # Start a new conversation with the initial prompt
-        messages = [{"role": "system", "content": "Initial prompt"}]
+        messages = [{"role": "system", "content": "greeting_message"}]
 
     # Generate a response using OpenAI's GPT-3
     response = openai.ChatCompletion.create(
@@ -329,5 +388,5 @@ while True:
     assistant_response = response['choices'][0]['message']['content']
     messages.append({"role": "assistant", "content": assistant_response})
 
-    print(assistant_response)
-
+    print_with_voice(assistant_response)
+    

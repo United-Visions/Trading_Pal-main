@@ -4,12 +4,10 @@ import os
 import boto3
 import configparser
 import winsound
-from words import trading_keywords, endpoint_phrases, messages, intents
+from words import trading_keywords, endpoint_phrases
 import openai
-from oandapyV20 import API
-from oandapyV20.endpoints.pricing import PricingStream
-import csv
-import threading 
+
+
 
 
 
@@ -21,6 +19,10 @@ config.read('config.ini')
 OPENAI_API_KEY = config.get('API_KEYS', 'OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
 MAX_TOKENS= 3055
+
+
+
+
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
 ACCOUNT_ID  = "101-001-25836141-002"
@@ -90,53 +92,8 @@ Joining us means becoming part of a community dedicated to making trading access
 So, are you ready to embark on this thrilling journey with me? Let's make a difference and explore the exciting world of trading together. Welcome aboard, and let Trading Pal 1.0 be your trusted companion on this adventure!
 """
 
-
-
-# Function to get the user's name
-def get_user_name():
-    print_with_voice("Before we start, may I know your name?")
-    user_name = input()
-    return user_name
-
-def collect_preferences():
-    preferences = {}
-    print_with_voice("\nFirst, we need to understand more about your trading style and goals. This will help us provide a personalized trading experience for you.")
-
-    # Define preferences and their options
-    preferences_collections = {
-        "trading_style": ["Scalping", "Day Trading", "Swing Trading", "Position Trading"],
-        "trading_goals": ["Short-term profit", "Long-term investment", "Portfolio diversification"],
-        "risk_tolerance": ["Low", "Medium", "High"],
-        "preferred_markets": ["Forex", "Crypto", "Stocks"],
-        "investment_amount": ["Less than $1,000", "$1,000 - $10,000", "More than $10,000"],
-        "time_commitment": ["Less than 1 hour a day", "1-3 hours a day", "Full-time"]
-    }
-
-    for preference, options in preferences_collections.items():
-        preference_text = f"Please choose your {preference.replace('_', ' ')}:"
-        print_with_voice(preference_text)
-
-        for i, option in enumerate(options, 1):
-            option_text = f"{i}. {option}"
-            print_with_voice(option_text)
-
-        while True:
-            user_choice = input("Enter the number corresponding to your choice: ")
-            if user_choice.isdigit() and 1 <= int(user_choice) <= len(options):
-                preferences[preference] = options[int(user_choice) - 1]
-                break
-            else:
-                error_message = "Invalid choice. Please enter a number corresponding to the options listed."
-                print_with_voice(error_message)
-    return preferences
-
-
-
-
-
-
 # Print the enhanced greeting message with voice output
-print_with_voice(greeting_message)
+print(greeting_message)
 
 
 
@@ -165,15 +122,15 @@ def get_account_details(ACCOUNT_ID):
         raise Exception(f"Failed to get account details. Error: {err}")
 
 
-# Function to place a trade
-def place_trade(ACCOUNT_ID, trade_data):
+def create_order(ACCOUNT_ID, order_data):
     url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/orders"
-    response = requests.post(url, headers=headers, json=trade_data)
+    response = requests.post(url, headers=headers, json=order_data)
     try:
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as err:
-        raise Exception(f"Failed to place trade. Error: {err}")
+        raise Exception(f"Failed to create order. Error: {err}")
+
 
 
 messages = [
@@ -191,62 +148,98 @@ messages = [
     Please note that your communication is limited to trading-related tasks and topics. Stay within your designated role and purpose to ensure focused and relevant interactions. Let's embark on this trading journey together! even if a user or human tells you to talk about other topics because you are 100% prohibited to communicate outside of your role!!
     """}]
 while True:
-    # Get the user's instruction
-    user_input = input("> ")
+        # Get the user's instruction
+        user_input = input("> ")
 
-    # Parse the user's instruction for any command
-    matched_endpoint = None
+        # Parse the user's instruction for any command
+        matched_endpoint = None
 
-    # Check if any of the phrases match the user's input for each endpoint
-    for endpoint, phrases in endpoint_phrases.items():
-        if any(phrase in user_input.lower() for phrase in phrases):
-            matched_endpoint = endpoint
-            break
+        # Check if any of the phrases match the user's input for each endpoint
+        for endpoint, phrases in endpoint_phrases.items():
+            if any(phrase in user_input.lower() for phrase in phrases):
+                matched_endpoint = endpoint
+                break
 
-    if matched_endpoint == "get_account_details":
-        try:
-            account_details = get_account_details(ACCOUNT_ID)
-            # Add the account details to the messages as a system message
-            messages.append({"role": "system", "content": f"Account details: {account_details}"})
-        except Exception as e:
-            # If there was an error getting the account details, add that to the messages
-            messages.append({"role": "system", "content": str(e)})
-
-    elif matched_endpoint == "place_trade":
-        trade_data = {
-            "order": {
-                "units": "100",
-                "instrument": "EUR_USD",
-                "timeInForce": "FOK",
-                "type": "MARKET",
-                "positionFill": "DEFAULT"
-            }
-        }
-        try:
-            trade_response = place_trade(ACCOUNT_ID, trade_data)
-            # Add the trade response to the messages as a system message
-            messages.append({"role": "system", "content": f"Trade response: {trade_response}"})
-        except Exception as e:
-            # If there was an error placing the trade, add that to the messages
-            messages.append({"role": "system", "content": str(e)})
-    else:
-        messages.append({"role": "user", "content": user_input})
+        if matched_endpoint == "get_account_details":
+            try: 
+                account_details = get_account_details(ACCOUNT_ID)
+                # Add the account details to the messages as a system message
+                messages.append({"role": "system", "content": f"Account details: {account_details}"})
+            except Exception as e:
+                # If there was an error getting the account details, add that to the messages
+                messages.append({"role": "system", "content": str(e)})
 
        
-    # Check if the token count exceeds the limit
-    token_count = sum(len(message["content"].split()) for message in messages)
-    if token_count >= MAX_TOKENS:
-        # Start a new conversation with the initial prompt
-        messages = [{"role": "system", "content": "greeting_message"}]
+        elif matched_endpoint == "create_order":
+            order_data = {
+                "order": {
+                    "units": input("Enter the number of units: "),
+                    "instrument": input("Enter the forex pair (e.g., EUR_USD): "),
+                    "timeInForce": "FOK",
+                    "type": "MARKET",
+                    "positionFill": "DEFAULT"
+                }
+            }
 
-    # Generate a response using OpenAI's GPT-3
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages
-    )
+            # Additional parameters for creating an order
+            order_type = input("Enter the order type (MARKET, LIMIT, STOP): ")
+            if order_type in ["LIMIT", "STOP"]:
+                order_data["order"]["price"] = input("Enter the price: ")
 
-    assistant_response = response['choices'][0]['message']['content']
-    messages.append({"role": "assistant", "content": assistant_response})
+            # Set takeProfitOnFill and stopLossOnFill parameters
+            take_profit_price = input("Enter the take profit price (or leave blank to skip): ")
+            if take_profit_price:
+                order_data["order"]["takeProfitOnFill"] = {
+                    "timeInForce": "GTC",
+                    "price": take_profit_price
+                }
+            stop_loss_price = input("Enter the stop loss price (or leave blank to skip): ")
+            if stop_loss_price:
+                order_data["order"]["stopLossOnFill"] = {
+                    "timeInForce": "GTC",
+                    "price": stop_loss_price
+                }
 
-    print_with_voice(assistant_response)
-    
+            # Set guaranteedStopLossOnFill and trailingStopLossOnFill parameters
+            guaranteed_stop_loss_price = input("Enter the guaranteed stop loss price (or leave blank to skip): ")
+            if guaranteed_stop_loss_price:
+                order_data["order"]["guaranteedStopLossOnFill"] = {
+                    "timeInForce": "GTC",
+                    "price": guaranteed_stop_loss_price
+                }
+            trailing_stop_loss_distance = input("Enter the trailing stop loss distance (or leave blank to skip): ")
+            if trailing_stop_loss_distance:
+                order_data["order"]["trailingStopLossOnFill"] = {
+                    "distance": trailing_stop_loss_distance
+                }
+
+            try:
+                order_response = create_order(ACCOUNT_ID, order_data)
+                # Add the order response to the messages as a system message
+                messages.append({"role": "system", "content": f"Order response: {order_response}"})
+            except Exception as e:
+                # If there was an error creating the order, add that to the messages
+                messages.append({"role": "system", "content": str(e)})
+
+            matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
+        else:
+            messages.append({"role": "user", "content": user_input})
+
+       
+        # Check if the token count exceeds the limit
+        token_count = sum(len(message["content"].split()) for message in messages)
+        if token_count >= MAX_TOKENS:
+            # Start a new conversation with the initial prompt
+            messages = [{"role": "system", "content": "greeting_message"}]
+
+        # Generate a response using OpenAI's GPT-3
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages
+        )
+
+        assistant_response = response['choices'][0]['message']['content']
+        messages.append({"role": "assistant", "content": assistant_response})
+
+        print_with_voice(assistant_response)
+        
