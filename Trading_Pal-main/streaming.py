@@ -8,7 +8,7 @@ from oandapyV20.endpoints.pricing import PricingStream
 from oandapyV20.endpoints.instruments import InstrumentsCandles
 
 # Set the OANDA API key
-OANDA_API_KEY = ""
+OANDA_API_KEY = "33a9e22e79a6afe67da0e568b0cca830-cf5e494dfe461d8704057859e229b74e"
 api = API(access_token=OANDA_API_KEY)
 
 ACCOUNT_ID = "101-001-25836141-002"
