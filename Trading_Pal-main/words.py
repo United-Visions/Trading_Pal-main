@@ -23,6 +23,11 @@ endpoint_phrases = {
         "proceed with a stop loss order", "carry out a trailing stop order"
     ],
 
+        "backtest_strategy": ["backtest", "run backtest on", "backtesting"
+    ],
+    
+    
+
     "get_account_details": [
         "fetch my account details", "retrieve account information",
         "show me my account details", "can I see my account details", "display my account information",

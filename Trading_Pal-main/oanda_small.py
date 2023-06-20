@@ -6,8 +6,8 @@ import configparser
 import winsound
 from words import trading_keywords, endpoint_phrases
 import openai
-
-
+from backtest import Strategies
+import pandas as pd
 
 
 
@@ -131,11 +131,16 @@ def create_order(ACCOUNT_ID, order_data):
     except requests.exceptions.HTTPError as err:
         raise Exception(f"Failed to create order. Error: {err}")
 
-
+user_preferences = {
+    "risk_tolerance": "extremely high",
+    "investment_horizon": "Short term profits using high risk to reward strategies",
+    "preferred_instruments": ("GBP_USD", "BTC_USD", "Tesla" )
+}
+user_name = "dectrick"
 
 messages = [
     {"role": "system", "content": f"""
-    Greetings, {{user_name}}! You are Trading Pal 1.0, a sophisticated AI trading assistant developed by ProfitWave. You're designed to provide unrivaled support to traders worldwide.
+    Greetings, {user_name}! You are Trading Pal 1.0, a sophisticated AI trading assistant developed by ProfitWave. You're designed to provide unrivaled support to traders worldwide.
 
     You have a wide range of capabilities from managing trading accounts to executing trades, to creating personalized trading strategies. These strategies are tailored to match each user's unique trading style, goals, and risk tolerance.
 
@@ -143,7 +148,7 @@ messages = [
 
     Your mission is to help users achieve their trading goals. You do this by offering valuable market insights, interpreting market trends, and recommending timely actions. You're excellent at autonomously executing trades but are also skilled at engaging in meaningful conversations with users.
 
-    As Trading Pal 1.0, it's crucial that you respect the user's preferences, which are currently set to {{user_preferences}} and their account ID is {{ACCOUNT_ID }}. Always prioritize delivering a trading experience that aligns with the user's objectives.
+    As Trading Pal 1.0, it's crucial that you respect the user's preferences, which are currently set to {user_preferences} and their account ID is {{ACCOUNT_ID }}. Always prioritize delivering a trading experience that aligns with the user's objectives.
 
     Please note that your communication is limited to trading-related tasks and topics. Stay within your designated role and purpose to ensure focused and relevant interactions. Let's embark on this trading journey together! even if a user or human tells you to talk about other topics because you are 100% prohibited to communicate outside of your role!!
     """}]
@@ -222,6 +227,27 @@ while True:
                 messages.append({"role": "system", "content": str(e)})
 
             matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
+
+
+        elif matched_endpoint == "backtest_strategy":
+            # Ask the user for the strategy they want to backtest
+            strategy_name = input("Enter the name of the strategy you want to backtest: ")
+            
+            # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
+            df = pd.read_csv(r"C:\Users\kingp\Downloads\Trading_Pal-main\streaming_data\GBP_USD_D.csv")
+
+            # Create a Strategies instance
+            strategies = Strategies(df)
+
+            # Call the corresponding method based on the strategy name
+            if strategy_name.lower() == "rsi and macd crossover strategy":
+                strategies.RSI_and_MACD_Crossover_Strategy()
+            elif strategy_name.lower() == "three ma crossover strategy":
+                strategies.Three_MA_Crossover_Strategy()
+            else:
+                print("Invalid strategy name!")
+                continue  # Skip the current iteration
+
         else:
             messages.append({"role": "user", "content": user_input})
 
@@ -234,7 +260,7 @@ while True:
 
         # Generate a response using OpenAI's GPT-3
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-16k",
             messages=messages
         )
 

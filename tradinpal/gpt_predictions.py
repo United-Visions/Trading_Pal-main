@@ -2,11 +2,11 @@ import pandas as pd
 import os
 import configparser
 import openai
-from tradinpal.config_manager import get_config
-from tradinpal.openai_service import create_chat_completion
+from config_manager import get_config
+from openai_service import create_chat_completion
 from oanda_service import get_account_details, create_order
 from input_handler import handle_input
-from tradinpal.voice_printer import print_with_voice
+from voice_printer import print_with_voice
 from words import trading_keywords, endpoint_phrases
 import requests
 # Read keys from config.ini

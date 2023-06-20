@@ -16,13 +16,16 @@ import boto3
 import configparser
 import winsound
 from words import trading_keywords, endpoint_phrases
-
+from backtest import Strategies
+import pandas as pd
 import oandapyV20
 import oandapyV20.endpoints.transactions as transactions
 from oandapyV20.contrib.requests import MarketOrderRequest
 from oandapyV20.exceptions import V20Error
 from oandapyV20.endpoints.orders import OrderCreate
 import openai  
+
+
 # Read keys from config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -534,6 +537,8 @@ while True:
                 matched_endpoint = endpoint
                 break
 
+
+
         if matched_endpoint == "get_account_details":
             try: 
                 account_details = get_account_details(ACCOUNT_ID)
@@ -542,6 +547,9 @@ while True:
             except Exception as e:
                 # If there was an error getting the account details, add that to the messages
                 messages.append({"role": "system", "content": str(e)})
+
+
+
 
        
         elif matched_endpoint == "create_order":
@@ -601,12 +609,50 @@ while True:
 
 
 
+        elif matched_endpoint == "backtest_strategy":
+            # Ask the user for the strategy they want to backtest
+            strategy_name = input("Enter the name of the strategy you want to backtest: ")
+            
+            # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
+            df = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
+
+            # Create a Strategies instance
+            strategies = Strategies(df)
+
+            # Call the corresponding method based on the strategy name
+            if strategy_name.lower() == "rsi and macd crossover strategy":
+                backtest_result = strategies.RSI_and_MACD_Crossover_Strategy()
+            elif strategy_name.lower() == "another strategy":
+                backtest_result = strategies.another_strategy()
+            else:
+                print_with_voice("Invalid strategy name!")
+                continue  # Skip the current iteration
+
+            # Assuming the backtest_result is a dictionary with keys 'success_rate' and 'total_profit'
+            # You need to modify this based on the actual structure of your backtest_result
+            success_rate = backtest_result['success_rate']
+            total_profit = backtest_result['total_profit']
+
+            # Create a detailed message about the backtest
+            detailed_message = f"The strategy '{strategy_name}' was backtested. The backtest showed a success rate of {success_rate*100}%, with a total profit of ${total_profit}. This means that if you had used this strategy, you would have been successful {success_rate*100}% of the time and made a total profit of ${total_profit}."
+
+            # Add the detailed message to the messages as a system message
+            messages.append({"role": "system", "content": detailed_message})
+
+
+
+
+
 
 
         elif matched_endpoint == "get_account_summary":
+
             try:
+
                 account_summary = get_account_summary(ACCOUNT_ID)
+
                 # Add the account summary to the messages as a system message
+
                 messages.append({"role": "system", "content": f"Account summary: {account_summary}"})
             except Exception as e:
                 # If there was an error getting the account summary, add that to the messages
@@ -992,45 +1038,6 @@ while True:
                 # If there was an error getting the transactions, add that to the messages
                 messages.append({"role": "system", "content": str(e)})
 
-        elif matched_endpoint == "get_transaction_details":
-            transaction_id = "123456"
-            try:
-                transaction_details = get_transaction_details(ACCOUNT_ID, transaction_id)
-                # Add the transaction details to the messages as a system message
-                messages.append({"role": "system", "content": f"Transaction details: {transaction_details}"})
-            except Exception as e:
-                # If there was an error getting the transaction details, add that to the messages
-                messages.append({"role": "system", "content": str(e)})
-
-        elif matched_endpoint == "get_transactions_id_range":
-            start_id = "123456"
-            end_id = "123460"
-            try:
-                transactions_range = get_transactions_id_range(ACCOUNT_ID, start_id, end_id)
-                # Add the transactions within the ID range to the messages as a system message
-                messages.append({"role": "system", "content": f"Transactions range: {transactions_range}"})
-            except Exception as e:
-                # If there was an error getting the transactions within the ID range, add that to the messages
-                messages.append({"role": "system", "content": str(e)})
-
-        elif matched_endpoint == "get_transactions_since_id":
-            since_id = "123456"
-            try:
-                transactions_since_id = get_transactions_since_id(ACCOUNT_ID, since_id)
-                # Add the transactions since the ID to the messages as a system message
-                messages.append({"role": "system", "content": f"Transactions since ID: {transactions_since_id}"})
-            except Exception as e:
-                # If there was an error getting the transactions since the ID, add that to the messages
-                messages.append({"role": "system", "content": str(e)})
-
-        elif matched_endpoint == "get_transaction_stream":
-            try:
-                transaction_stream = get_transaction_stream(ACCOUNT_ID)
-                # Add the transaction stream to the messages as a system message
-                messages.append({"role": "system", "content": f"Transaction stream: {transaction_stream}"})
-            except Exception as e:
-                # If there was an error getting the transaction stream, add that to the messages
-                messages.append({"role": "system", "content": str(e)})
 
         elif matched_endpoint == "get_latest_candles":
             instrument = "EUR_USD"
@@ -1052,15 +1059,6 @@ while True:
                 # If there was an error getting the pricing, add that to the messages
                 messages.append({"role": "system", "content": str(e)})
 
-        elif matched_endpoint == "get_pricing_stream":
-            instrument = "EUR_USD"
-            try:
-                pricing_stream = get_pricing_stream(instrument)
-                # Add the pricing stream to the messages as a system message
-                messages.append({"role": "system", "content": f"Pricing stream: {pricing_stream}"})
-            except Exception as e:
-                # If there was an error getting the pricing stream, add that to the messages
-                messages.append({"role": "system", "content": str(e)})
 
 
             

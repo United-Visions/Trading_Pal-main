@@ -1,5 +1,5 @@
 import requests
-from tradinpal.config_manager import get_config
+from config_manager import get_config
 
 BASE_URL = "https://api-fxpractice.oanda.com"
 headers = {

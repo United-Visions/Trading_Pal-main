@@ -1,8 +1,6 @@
-asyncio
-whisper
+
 boto3
 pydub
-SpeechRecognition
 openai
 requests
 pandas

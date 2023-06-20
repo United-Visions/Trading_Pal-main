@@ -1,10 +1,14 @@
-from tradinpal.config_manager import get_config
-from tradinpal.openai_service import create_chat_completion
+from flask import Flask, render_template, request, jsonify
+from config_manager import get_config
+from openai_service import create_chat_completion
 from oanda_service import get_account_details, create_order
 from input_handler import handle_input
-from tradinpal.voice_printer import print_with_voice
+from voice_printer import print_with_voice
 from words import trading_keywords, endpoint_phrases
+from backtest import Strategies
+import pandas as pd
 
+app = Flask(__name__)
 
 
 
@@ -41,9 +45,14 @@ messages = [
     {"role": "user", "content": f"My name is {user_name}."},
     {"role": "user", "content": f"My preferences are {preferred_instruments}, {investment_horizon}, {risk_tolerance}."}
 ]
-while True:
-    # Get the user's instruction
-    user_input = input("> ")
+@app.route("/")
+def home():
+    return render_template('index.html')
+
+
+@app.route("/process_input", methods=['POST'])
+def process_input():
+    user_input = request.form['user_input']
 
     # Parse the user's instruction for any command
     matched_endpoint = handle_input(user_input, endpoint_phrases)
@@ -114,6 +123,32 @@ while True:
 
     elif matched_endpoint == "continue_order":
         matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
+    elif matched_endpoint == "backtest_strategy":
+            # Ask the user for the strategy they want to backtest
+            strategy_name = input("Enter the name of the strategy you want to backtest: ")
+            
+            # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
+            df = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
+
+            # Create a Strategies instanc
+            strategies = Strategies(df)
+
+            # Call the corresponding method based on the strategy name
+            if strategy_name.lower() == "rsi and macd crossover strategy":
+                backtest_result = strategies.RSI_and_MACD_Crossover_Strategy()
+            elif strategy_name.lower() == "Three MA Crossover Strategy":
+                backtest_result = strategies.Three_MA_Crossover_Strategy()
+            else:
+                print_with_voice("Invalid strategy name!")
+                
+
+            # Assuming the backtest_result is a dictionary with keys 'total_return' and 'win_rate'
+            # You need to modify this based on the actual structure of your backtest_result
+            total_return = backtest_result['total_return']
+            win_rate = backtest_result['win_rate']
+
+            # Create a detailed message about the backtest
+            detailed_message = f"The strategy '{strategy_name}' was backtested. The backtest showed a success rate of {total_return*100}%, with a total profit of ${win_rate}. This means that if you had used this strategy, you would have been successful {total_return*100}% of the time and made a total profit of ${win_rate}."
 
     else:
         messages.append({"role": "user", "content": user_input})
@@ -122,3 +157,7 @@ while True:
         print_with_voice(response)
         messages[-1]["content"] = response
         messages.append({"role": "user", "content": ""})
+    return jsonify({'response': response, 'error': error})
+
+if __name__ == "__main__":
+    app.run(debug=True)

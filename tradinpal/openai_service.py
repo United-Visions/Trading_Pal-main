@@ -1,5 +1,5 @@
 import openai
-from tradinpal.config_manager import get_config
+from config_manager import get_config
 
 openai.api_key = get_config('API_KEYS', 'OPENAI_API_KEY')
 MAX_TOKENS = 16000

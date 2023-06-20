@@ -2,7 +2,7 @@ import boto3
 import wave
 import os
 import winsound
-from tradinpal.config_manager import get_config
+from config_manager import get_config
 
 session = boto3.Session(
     aws_access_key_id=get_config('AWS_KEYS', 'AWS_ACCESS_KEY_ID'),
