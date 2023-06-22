@@ -21,7 +21,7 @@ class Strategies:
     def __init__(self, df):
         self.df = df
 
-
+    
         #--------------------------#
         #                          #
         #    Strategies List       #
@@ -211,8 +211,34 @@ class Strategies:
         #--------------------------#
 
 
+    strategies = {
+        "RSI_and_MACD_Crossover_Strategy": {
+            "author": "ProfitWave Trading Co.",
+            "func": RSI_and_MACD_Crossover_Strategy
+        },
+        "Three_MA_Crossover_Strategy": {
+            "author": "ProfitWave Trading Co.",
+            "func": Three_MA_Crossover_Strategy
+        }
+        # Add more strategies here...
+    }
 
-      
+    def search_and_backtest_by_strategy(self, strategy_name):
+        strategy = self.strategies.get(strategy_name)
+        if strategy is not None:
+            print(f"Backtesting strategy: {strategy_name} by {strategy['author']}")
+            strategy["func"](self)
+        else:
+            print("Strategy not found.")
+
+    def get_strategies_by_author(self, author_name):
+        strategies_by_author = [strategy for strategy, details in self.strategies.items() if details["author"] == author_name]
+        if strategies_by_author:
+            print(f"Found {len(strategies_by_author)} strategies by {author_name}.")
+            return strategies_by_author
+        else:
+            print("No strategies found by the specified author.")
+            return []
 
 
 
@@ -364,95 +390,39 @@ def load_all_timeframes(instrument, count):
     print("Finished loading data for all timeframes.")
     return dataframes
 
+
 def main():
-    # Load historical data for a specific instrument and timeframe
-    def load_data(instrument, timeframe):
-        df = load_historical_data(instrument, timeframe, round)
-        if df is None:
-            print(f"Failed to load {timeframe} data.")
-            return None
-        print(f"{timeframe} data loaded successfully.")
-        return df
+    # Load historical data
+    df = load_historical_data(INSTRUMENTS[0], GRANULARITIES[0], 5000)
 
-    # Create a list of timeframes
-    timeframes = ["M1", "M15", "M30", "H1", "H4"]
+    # Initialize strategies object
+    strategies_obj = Strategies(df)
 
-    # Load data for each timeframe
-    def load_all_timeframes(instrument, count):
-        print("Starting to load data for all timeframes...")
-        dataframes = {}
-        for timeframe in timeframes:
-            df = load_data(instrument, timeframe)
-            if df is not None:
-                dataframes[timeframe] = df
-        print("Finished loading data for all timeframes.")
-        return dataframes
+    # User input for search method
+    search_method = input("Enter '1' to search by strategy or '2' to search by author: ")
 
-    print("Starting main function...")
-    dataframes = load_all_timeframes("GBP_USD", 90 * 24)
-    strategies = {timeframe: Strategies(df) for timeframe, df in dataframes.items()}
-    print("Created strategies for all timeframes.")
-
-    while True:
-        user_input = input("Enter your message: ")
-
-        if user_input.lower() == "exit":
-            print("Exiting...")
-            break
-
-        # Check if the user wants to search for strategies by author
-        if user_input.lower().startswith("search by author"):
-            author = user_input[16:].strip()
-            matching_strategies = [
-                f"{timeframe} - {strategy.__class__.__name__}"
-                for timeframe, strategy in strategies.items()
-                if strategy.__class__.__name__author.lower() == author.lower()
-            ]
-            if matching_strategies:
-                print(f"Strategies by {author}:")
-                print("\n".join(matching_strategies))
+    if search_method == '1':
+        # Perform backtest by strategy name
+        strategies_obj.search_and_backtest_by_strategy(input("Enter the strategy name: "))
+    elif search_method == '2':
+        author_name = input("Enter the author name: ")
+        # Get strategies by author
+        strategies = strategies_obj.get_strategies_by_author(author_name)
+        if strategies:
+            for i, strategy in enumerate(strategies, 1):
+                print(f"{i}. {strategy}")
+            
+            # User input to select strategy
+            strategy_index = int(input("Enter the number of the strategy you want to backtest: ")) - 1
+            if 0 <= strategy_index < len(strategies):
+                # Perform backtest by selected strategy
+                strategies_obj.search_and_backtest_by_strategy(strategies[strategy_index])
             else:
-                print(f"No strategies found by {author}.")
-            continue
-
-        # Check if the user wants to search for strategies by name
-        if user_input.lower().startswith("search by name"):
-            name = user_input[14:].strip()
-            matching_strategies = [
-                f"{timeframe} - {strategy.__class__.__name__}"
-                for timeframe, strategy in strategies.items()
-                if strategy.__class__.__name__.lower() == name.lower()
-            ]
-            if matching_strategies:
-                print(f"Strategies with name '{name}':")
-                print("\n".join(matching_strategies))
-            else:
-                print(f"No strategies found with name '{name}'.")
-            continue
-
-        # Execute backtesting for the specified strategy
-        strategy_name = user_input.strip()
-        for timeframe, strategy in strategies.items():
-            print(f"\nBacktesting {strategy_name} on {timeframe} data...")
-            if strategy_name == strategy.__class__.__name__:
-                backtest_results = strategy()
-                # Convert backtest results to a formatted string
-                results_str = "\n".join([f"{k}: {v}" for k, v in backtest_results.items()])
-
-                # Pass the backtest results to the GPT-3 Turbo model
-                prompt = f"Backtest results for {strategy_name} on {timeframe} data:\n{results_str}"
-                # Generate a response using OpenAI's GPT-3
-                response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo-16k",
-                messages=messages
-        )
-                # Extract the generated response and print it
-                generated_response = response.choices[0].text.strip()
-                print(generated_response)
-
-    print("Script finished.")
-
+                print("Invalid strategy number.")
+        else:
+            print(f"No strategies found by {author_name}.")
+    else:
+        print("Invalid search method. Please enter either '1' or '2'.")
 
 if __name__ == "__main__":
-    print("Starting script...")
     main()
