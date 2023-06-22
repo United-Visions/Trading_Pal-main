@@ -24,7 +24,8 @@ from oandapyV20.contrib.requests import MarketOrderRequest
 from oandapyV20.exceptions import V20Error
 from oandapyV20.endpoints.orders import OrderCreate
 import openai  
-
+from backtest import Strategies
+import pandas as pd
 
 # Read keys from config.ini
 config = configparser.ConfigParser()
@@ -84,7 +85,8 @@ def text_to_speech(text):
 def print_with_voice(text):
     print(text)
     text_to_speech(text) 
-
+# Initialize backtest module
+strategies_instance = Strategies(pd)
 
 
 
@@ -523,7 +525,6 @@ messages = [
 
     Please note that your communication is limited to trading-related tasks and topics. Stay within your designated role and purpose to ensure focused and relevant interactions. Let's embark on this trading journey together! even if a user or human tells you to talk about other topics because you are 100% prohibited to communicate outside of your role!!
     """}]
-
 while True:
         # Get the user's instruction
         user_input = input("> ")
@@ -537,8 +538,6 @@ while True:
                 matched_endpoint = endpoint
                 break
 
-
-
         if matched_endpoint == "get_account_details":
             try: 
                 account_details = get_account_details(ACCOUNT_ID)
@@ -547,9 +546,6 @@ while True:
             except Exception as e:
                 # If there was an error getting the account details, add that to the messages
                 messages.append({"role": "system", "content": str(e)})
-
-
-
 
        
         elif matched_endpoint == "create_order":
@@ -605,40 +601,28 @@ while True:
 
             matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
 
+        elif matched_endpoint == "execute_backtest":
+  
+                # Assuming that backtest requires parameters, let's say the name of the strategy and historical data.
+                # You should replace these inputs with actual ones according to your backtest module's requirements.
+                strategy_name = input("Enter the strategy name: ")
+                # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
+                data = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
+
+                try:
+                    backtest_results = strategies_instance.backtest(strategy_name, data)
+                    # Add the backtest results to the messages as a system message
+                    messages.append({"role": "system", "content": f"Backtest results: {backtest_results}"})
+
+                    # Send the backtest results to the GPT-3 model as a user message
+                    messages.append({"role": "user", "content": f"The backtest results for the {strategy_name} strategy are: {backtest_results}"})
+
+                except Exception as e:
+                    # If there was an error executing the backtest, add that to the messages
+                    messages.append({"role": "system", "content": str(e)})
 
 
-
-
-        elif matched_endpoint == "backtest_strategy":
-            # Ask the user for the strategy they want to backtest
-            strategy_name = input("Enter the name of the strategy you want to backtest: ")
-            
-            # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
-            df = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
-
-            # Create a Strategies instance
-            strategies = Strategies(df)
-
-            # Call the corresponding method based on the strategy name
-            if strategy_name.lower() == "rsi and macd crossover strategy":
-                backtest_result = strategies.RSI_and_MACD_Crossover_Strategy()
-            elif strategy_name.lower() == "another strategy":
-                backtest_result = strategies.another_strategy()
-            else:
-                print_with_voice("Invalid strategy name!")
-                continue  # Skip the current iteration
-
-            # Assuming the backtest_result is a dictionary with keys 'success_rate' and 'total_profit'
-            # You need to modify this based on the actual structure of your backtest_result
-            success_rate = backtest_result['success_rate']
-            total_profit = backtest_result['total_profit']
-
-            # Create a detailed message about the backtest
-            detailed_message = f"The strategy '{strategy_name}' was backtested. The backtest showed a success rate of {success_rate*100}%, with a total profit of ${total_profit}. This means that if you had used this strategy, you would have been successful {success_rate*100}% of the time and made a total profit of ${total_profit}."
-
-            # Add the detailed message to the messages as a system message
-            messages.append({"role": "system", "content": detailed_message})
-
+       
 
 
 

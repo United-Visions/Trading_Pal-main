@@ -10,7 +10,6 @@ from backtest import Strategies
 import pandas as pd
 
 
-
 # Read keys from config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -35,65 +34,9 @@ headers = {
     "Connection": "keep-alive"
 }
 
-# Initialize AWS Polly client
-AWS_ACCESS_KEY_ID = config.get('AWS_KEYS', 'AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = config.get('AWS_KEYS', 'AWS_SECRET_ACCESS_KEY')
-AWS_REGION = config.get('AWS_KEYS', 'AWS_REGION')
-session = boto3.Session(
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    region_name=AWS_REGION
-)
-polly_client = session.client('polly')
 
-# Function to convert text to speech using AWS Polly
-def text_to_speech(text):
-    response = polly_client.synthesize_speech(
-        Text=text,
-        OutputFormat="pcm",
-        VoiceId="Matthew"  # Provide the desired voice ID
-    )
-    audio = response['AudioStream'].read()
-
-    # Save the audio stream to a temporary WAV file
-    with wave.open(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav", 'wb') as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(16000)
-        wav_file.writeframes(audio)
-
-    # Play the audio using the winsound module
-    winsound.PlaySound(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav", winsound.SND_FILENAME)
-
-    # Remove the temporary WAV file
-    os.remove(r"C:\Users\kingp\Downloads\Trading_Pal-main\temp.wav")
-
-# Modify the printing statements to use text_to_speech function
-def print_with_voice(text):
-    print(text)
-    text_to_speech(text) 
-
-
-
-# Enhanced greeting message from ProfitWave
-greeting_message = """
- Hello there! Welcome to the world of Trading Pal 1.0! I'm here to introduce myself and tell you more about how I can assist you in your trading journey. Let's dive in!
-
-I, Trading Pal 1.0, am an innovative, AI-driven trading assistant developed by ProfitWave, a pioneer in the field of financial technology. My mission is to revolutionize the way you navigate the financial markets, making trading intuitive and accessible for all.
-
-Think of me as your personal guide in the trading world. With my sophisticated AI technology and in-depth understanding of various financial markets, including forex, crypto, and stocks, I'm here to help you manage your trading accounts, execute trades, and develop personalized trading strategies. I tailor my services specifically to your preferences and risk tolerance, ensuring a customized and optimized trading experience.
-
-One of my standout features is my seamless integration with multiple broker APIs across different blockchains. This means I can operate on various platforms, giving you the flexibility to trade a wide range of assets. Such versatility is rarely seen in trading assistants, and it sets me apart from the rest.
-
-However, my journey doesn't end with Trading Pal 1.0. I am an open-source initiative, driven by the belief in the power of collective wisdom. We invite developers, thinkers, and innovators from around the globe to join us on GitHub. Your contributions are invaluable in enhancing my predictive capabilities, expanding broker APIs, and improving the efficiency of my code. Together, we can shape the future of trading with AI.
-
-Joining us means becoming part of a community dedicated to making trading accessible and profitable for everyone, regardless of their background or experience. Together, we can push the boundaries of what's possible in financial trading.
-
-So, are you ready to embark on this thrilling journey with me? Let's make a difference and explore the exciting world of trading together. Welcome aboard, and let Trading Pal 1.0 be your trusted companion on this adventure!
-"""
-
-# Print the enhanced greeting message with voice output
-print(greeting_message)
+# Initialize backtest module
+strategies_instance = Strategies(pd)
 
 
 
@@ -228,25 +171,28 @@ while True:
 
             matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
 
+        elif matched_endpoint == "execute_backtest":
+  
+                # Assuming that backtest requires parameters, let's say the name of the strategy and historical data.
+                # You should replace these inputs with actual ones according to your backtest module's requirements.
+                strategy_name = input("Enter the strategy name: ")
+                # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
+                data = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
 
-        elif matched_endpoint == "backtest_strategy":
-            # Ask the user for the strategy they want to backtest
-            strategy_name = input("Enter the name of the strategy you want to backtest: ")
-            
-            # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
-            df = pd.read_csv(r"C:\Users\kingp\Downloads\Trading_Pal-main\streaming_data\GBP_USD_D.csv")
+                try:
+                    backtest_results = strategies_instance.backtest(strategy_name, data)
+                    # Add the backtest results to the messages as a system message
+                    messages.append({"role": "system", "content": f"Backtest results: {backtest_results}"})
 
-            # Create a Strategies instance
-            strategies = Strategies(df)
+                    # Send the backtest results to the GPT-3 model as a user message
+                    messages.append({"role": "user", "content": f"The backtest results for the {strategy_name} strategy are: {backtest_results}"})
 
-            # Call the corresponding method based on the strategy name
-            if strategy_name.lower() == "rsi and macd crossover strategy":
-                strategies.RSI_and_MACD_Crossover_Strategy()
-            elif strategy_name.lower() == "three ma crossover strategy":
-                strategies.Three_MA_Crossover_Strategy()
-            else:
-                print("Invalid strategy name!")
-                continue  # Skip the current iteration
+                except Exception as e:
+                    # If there was an error executing the backtest, add that to the messages
+                    messages.append({"role": "system", "content": str(e)})
+
+
+        
 
         else:
             messages.append({"role": "user", "content": user_input})
@@ -267,5 +213,5 @@ while True:
         assistant_response = response['choices'][0]['message']['content']
         messages.append({"role": "assistant", "content": assistant_response})
 
-        print_with_voice(assistant_response)
+        print(assistant_response)
         

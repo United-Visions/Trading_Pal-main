@@ -389,8 +389,6 @@ def load_all_timeframes(instrument, count):
             print(f"Failed to load data for {timeframe}.")
     print("Finished loading data for all timeframes.")
     return dataframes
-
-
 def main():
     # Load historical data
     df = load_historical_data(INSTRUMENTS[0], GRANULARITIES[0], 5000)
@@ -409,6 +407,7 @@ def main():
         # Get strategies by author
         strategies = strategies_obj.get_strategies_by_author(author_name)
         if strategies:
+            print(f"Found {len(strategies)} strategies by {author_name}:")
             for i, strategy in enumerate(strategies, 1):
                 print(f"{i}. {strategy}")
             

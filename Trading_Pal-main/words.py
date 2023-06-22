@@ -23,7 +23,7 @@ endpoint_phrases = {
         "proceed with a stop loss order", "carry out a trailing stop order"
     ],
 
-        "backtest_strategy": ["backtest", "run backtest on", "backtesting"
+        "execute_backtest": ["execute a backtest", "run a backtest", "backtest trading strategy"
     ],
     
     

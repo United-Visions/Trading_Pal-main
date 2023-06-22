@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 200px;
+            background-color: #4d4d4d;
+            padding: 10px;
+            box-shadow: 0px 10px 18px -2px rgba(0,0,0,0.75);
+            border-right: 2px solid white;
+        }
+        
+        #sidebar h2 {
+            margin-top: 0;
+        }
+        
+        #sidebar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #sidebar li {
+            margin-bottom: 10px;
+        }
+        
+        #main-content {
+            margin-left: 200px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #chat-history {
+            flex-grow: 1;
+            overflow-y: scroll;
+        }
+        
+        .system-message,
+        .assistant-message,
+        .user-message {
+            display: flex;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .user-message {
+            justify-content: flex-end;
+            background-color: silver;
+        }
+        
+        .assistant-message {
+            justify-content: flex-start;
+            background-color: gray;
+        }
+        
+        .user-bubble {
+            background-color: #4e69a2;
+            color: #fff;
+            border-radius: 20px;
+            padding: 10px 15px;
+            width: 99%;
+        }
+        
+        .assistant-bubble {
+            background-color: #eee;
+            border-radius: 20px;
+            padding: 10px 15px;
+            width: 99%;
+        }
+        
+        .message-text {
+            margin: 0;
+        }
+        
+        #chat-form {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 250px;
+            right: 0;
+            padding: 10px;
+            background-color: #ffffff;
+            overflow-y: auto;
+        }
+        
+        #chat-form input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>TradingPal</h2>
+        <ul>
+            <li><button id="new-message-button">New Message</button></li>
+            <li id="conversation-history">
+                Conversation History
+                <ul id="conversation-list"></ul>
+            
+        <div id="user-profile">
+            <p>Username</p>
+            <button>Sign up for Premium</button>
+        </div>
+    </div>
+    <div id="main-content">
+        <div id="chat-history"></div>
+        <form id="chat-form">
+            <input type="text" id="user-input" placeholder="Type your message here..." />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    
+        <script>
+            document.getElementById('chat-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                let userInput = document.getElementById('user-input');
+                let userText = userInput.value;
+                userInput.value = '';
+    
+                let userHtml = `<div class="user-message"><div class="user-bubble"><p class="message-text">${userText}</p></div></div>`;
+                document.getElementById('chat-history').innerHTML += userHtml;
+    
+                axios.post('http://localhost:5000/api/v1/query', {
+                    message: userText
+                })
+                .then(function(response) {
+                    let assistantText = response.data.response;
+                    let assistantHtml = `<div class="assistant-message"><div class="assistant-bubble"><p class="message-text">${assistantText}</p></div></div>`;
+                    document.getElementById('chat-history').innerHTML += assistantHtml;
+                })
+                .catch(function(error) {
+                    console.error(error);
+                });
+           
+            });         
+        </script>
+    </body>
+</html>
