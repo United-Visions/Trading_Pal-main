@@ -8,6 +8,8 @@ from words import trading_keywords, endpoint_phrases
 import openai
 from backtest import Strategies
 import pandas as pd
+from news import get_google_search_results, generate_gpt3_response
+
 
 
 # Read keys from config.ini
@@ -24,7 +26,7 @@ MAX_TOKENS= 3055
 
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID  = "101-001-25836141-002"
+ACCOUNT_ID  = "101-02"
 
 # The headers for the HTTP requests
 OANDA_API_KEY = config.get('API_KEYS', 'OANDA_API_KEY')
@@ -171,28 +173,28 @@ while True:
 
             matched_endpoint = input("Enter 'ok' to continue creating orders or press Enter to exit: ")
 
-        elif matched_endpoint == "execute_backtest":
-  
-                # Assuming that backtest requires parameters, let's say the name of the strategy and historical data.
-                # You should replace these inputs with actual ones according to your backtest module's requirements.
-                strategy_name = input("Enter the strategy name: ")
-                # Here you need to provide the data for backtesting, assuming it is stored in a CSV file
-                data = pd.read_csv(r'C:\Users\kingp\Downloads\Trading_Pal-main\Trading_Pal-main\GBP_USD_D.csv')
-
-                try:
-                    backtest_results = strategies_instance.backtest(strategy_name, data)
-                    # Add the backtest results to the messages as a system message
-                    messages.append({"role": "system", "content": f"Backtest results: {backtest_results}"})
-
-                    # Send the backtest results to the GPT-3 model as a user message
-                    messages.append({"role": "user", "content": f"The backtest results for the {strategy_name} strategy are: {backtest_results}"})
-
-                except Exception as e:
-                    # If there was an error executing the backtest, add that to the messages
-                    messages.append({"role": "system", "content": str(e)})
-
-
         
+  
+                
+        elif matched_endpoint == "perform_search":
+            user_query = input("Please enter your search query: ")
+            gpt3_prompt = f"Search the web for '{user_query}'"
+            search_results = get_google_search_results(user_query)
+            gpt3_response = generate_gpt3_response(gpt3_prompt, search_results)
+
+            print(f"Search results: {gpt3_response}")
+
+            # Ask for user feedback
+            user_feedback = input("Was the response satisfactory? (yes/no): ")
+            while user_feedback.lower() != 'yes':
+                user_query = input("Please refine your query or ask in a different way: ")
+                gpt3_prompt = f"{gpt3_response}. {user_query}"
+                search_results = get_google_search_results(user_query)
+                gpt3_response = generate_gpt3_response(gpt3_prompt, search_results)
+
+                print(f"Search results: {gpt3_response}")
+                user_feedback = input("Was the response satisfactory? (yes/no): ")
+
 
         else:
             messages.append({"role": "user", "content": user_input})

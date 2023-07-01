@@ -10,4 +10,5 @@ wave
 configparser
 sqlite3 
 oandapyV20
-
+flask
+numpy 

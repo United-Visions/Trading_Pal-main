@@ -3,7 +3,7 @@ import json
 from oandapyV20 import API
 from oandapyV20.endpoints.instruments import InstrumentsPositionBook
 
-client = API(access_token='33a9e22e79a6afe67da0e568b0cca830-cf5e494dfe461d8704057859e229b74e')
+client = API(access_token='33a9e22e79a6a29b74e')
 
 r = InstrumentsPositionBook(instrument="GBP_USD")
 client.request(r)

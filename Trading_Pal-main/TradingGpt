@@ -23,7 +23,7 @@ MAX_TOKENS = 2000  # Adjusted based on GPT-3 model's limitations
 
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID = "101-001-25836141-002"
+ACCOUNT_ID = "1012"
 
 # The headers for the HTTP requests
 OANDA_API_KEY = config.get('API_KEYS', 'OANDA_API_KEY')

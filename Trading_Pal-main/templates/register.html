@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        form {
+            width: 300px;
+            margin: auto;
+            padding-top: 50px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0 22px 0;
+            border: none;
+            background: #f1f1f1;
+        }
+        input[type="button"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        p {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <form action="/register" method="POST">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br>
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br>
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br>
+        <label for="address">Address:</label><br>
+        <input type="text" id="address" name="address" required><br>
+        <label for="trading_preferences">Trading Preferences:</label><br>
+        <input type="text" id="trading_preferences" name="trading_preferences" required><br>
+        <label for="broker">Choose a broker:</label><br>
+        <select name="broker" id="broker">
+            <option value="oanda">OANDA</option>
+            <option value="alpaca">Alpaca</option>
+        </select><br>
+        <label for="api_key">API Key:</label><br>
+        <input type="text" id="api_key" name="api_key" required><br>
+        <label for="account_id">Account ID (OANDA only):</label><br>
+        <input type="text" id="account_id" name="account_id"><br>
+        <label for="openai_api_key">OpenAI API Key:</label><br>
+        <input type="text" id="openai_api_key" name="openai_api_key" required><br>
+        <input type="submit" value="Submit">
+    </form>
+    
+    <script>
+        function submitRegister() {
+            fetch('/register', {
+                method: 'POST',
+                body: new FormData(document.getElementById('register-form')),
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/index';  // Redirect to main page
+                } else {
+                    alert('Registration failed');
+                }
+            });
+        }
+        </script>
+</body>
+</html>

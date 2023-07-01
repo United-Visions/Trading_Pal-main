@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trading Strategy Backtesting</title>
+  <style>
+    /* Add your CSS styles here */
+
+    /* Style for container */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Style for form inputs */
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Style for buttons */
+    .btn {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Style for output container */
+    .output-container {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f2f2f2;
+      font-family: monospace;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Style for divider */
+    .divider {
+      border-top: 1px solid #ccc;
+      margin: 20px 0;
+    }
+
+    /* Style for hover effect */
+    .hover-effect:hover {
+      background-color: #f9f9f9;
+    }
+
+    /* Style for the sidebar */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-left: 1px solid #ccc;
+      overflow-y: auto;
+    }
+
+    /* Style for sidebar list items */
+    #strategyList li {
+      cursor: pointer;
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    #strategyList li:hover {
+      background-color: #f2f2f2;
+    }
+  </style>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  
+  <div class="container">
+    <h1>Trading Strategy Backtesting</h1>
+    <form id="strategyForm">
+      <h2>Create Your Own Strategy</h2>
+
+      <label for="strategyName">Strategy Name:</label>
+      <input type="text" id="strategyName" required class="form-control">
+
+      <label for="authorName">Author Name:</label>
+      <input type="text" id="authorName" required class="form-control">
+      
+      <label for="currencyPair">Currency Pair:</label>
+      <input type="text" id="currencyPair" required class="form-control" placeholder="e.g., EUR_USD">
+      <small class="form-text text-muted">Enter a valid currency pair (e.g., EUR_USD, GBP_USD).</small>
+
+      <label for="timeFrame">Time Frame:</label>
+      <input type="text" id="timeFrame" required class="form-control" placeholder="e.g., H1">
+      <small class="form-text text-muted">Enter a valid time frame (e.g., M1, M5, H1, D1).</small>
+
+      <label for="strategyCode">Strategy Code:</label>
+      <textarea id="strategyCode" rows="10" required class="form-control"></textarea>
+
+      <button type="button" class="btn btn-primary" onclick="backtestStrategy()">Backtest</button>
+    </form>
+
+    <!-- Backtesting Results Modal -->
+    <div class="modal fade" id="backtestResultsModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Backtesting Results</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id="output">
+            <!-- Results will be inserted here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar for saved strategies -->
+  <div id="sidebar">
+    <h2>Saved Strategies</h2>
+    <input type="text" id="searchStrategies" placeholder="Search strategies..." oninput="filterStrategies()">
+    <ul id="strategyList"></ul>
+  </div>
+
+  <!-- Include jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+  <script>
+    function backtestStrategy() {
+      var strategyName = document.getElementById("strategyName").value;
+      var authorName = document.getElementById("authorName").value;
+      var strategyCode = document.getElementById("strategyCode").value;
+      var currencyPair = document.getElementById("currencyPair").value;
+      var timeFrame = document.getElementById("timeFrame").value;
+
+      var data = {
+          strategyName: strategyName,
+          authorName: authorName,
+          strategyCode: strategyCode,
+          currencyPair: currencyPair,
+          timeFrame: timeFrame
+      };
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/backtest", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = JSON.parse(xhr.responseText);
+            var backtestResults = response.backtestResults;
+
+            var output = document.getElementById("output");
+            output.innerText = backtestResults;
+            $('#backtestResultsModal').modal('show');
+          } else {
+            alert("Backtesting failed. Please try again.");
+          }
+        }
+      };
+      xhr.send(JSON.stringify(data));
+    }
+
+    // Function to display strategies in the sidebar
+    function displayStrategies(strategies) {
+      var strategyList = document.getElementById("strategyList");
+      strategyList.innerHTML = "";  // Clear the list first
+      for (var i = 0; i < strategies.length; i++) {
+        var strategy = strategies[i];
+        var li = document.createElement("li");
+        li.textContent = strategy.strategyName + " by " + strategy.authorName;
+        li.onclick = function() {
+          // Fill the form with the strategy data when a strategy is clicked
+          document.getElementById("strategyName").value = strategy.strategyName;
+          document.getElementById("authorName").value = strategy.authorName;
+          document.getElementById("currencyPair").value = strategy.currencyPair;
+          document.getElementById("timeFrame").value = strategy.timeFrame;
+          document.getElementById("strategyCode").value = strategy.strategyCode;
+        };
+        strategyList.appendChild(li);
+      }
+    }
+
+    // Function to fetch saved strategies
+    function fetchStrategies() {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/strategies", true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = JSON.parse(xhr.responseText);
+            var strategies = response.strategies;
+            displayStrategies(strategies);
+          }
+        }
+      };
+      xhr.send();
+    }
+
+    // Function to filter strategies based on search input
+    function filterStrategies() {
+      var searchInput = document.getElementById("searchStrategies").value.toLowerCase();
+      var strategies = document.getElementById("strategyList").getElementsByTagName("li");
+      for (var i = 0; i < strategies.length; i++) {
+        var strategy = strategies[i];
+        var strategyName = strategy.textContent.toLowerCase();
+        if (strategyName.includes(searchInput)) {
+          strategy.style.display = "";
+        } else {
+          strategy.style.display = "none";
+        }
+      }
+    }
+
+    // Fetch the saved strategies when the page is loaded
+    window.onload = fetchStrategies;
+  </script>
+</body>
+</html>

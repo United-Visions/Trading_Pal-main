@@ -17,7 +17,7 @@ openai.api_key = OPENAI_API_KEY
 
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID = "101-001-25836141-002"
+ACCOUNT_ID = "10102"
 
 
 # Initialize AWS Polly client

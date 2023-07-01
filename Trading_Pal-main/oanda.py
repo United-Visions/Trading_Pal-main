@@ -37,7 +37,7 @@ openai.api_key = OPENAI_API_KEY
 MAX_TOKENS= 3055
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID  = "101-001-25836141-002"
+ACCOUNT_ID  = "101-2"
 
 # The headers for the HTTP requests
 OANDA_API_KEY = config.get('API_KEYS', 'OANDA_API_KEY')

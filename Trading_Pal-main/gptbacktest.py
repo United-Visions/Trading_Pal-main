@@ -5,11 +5,12 @@ import openai
 from oandapyV20 import API
 from oandapyV20.exceptions import V20Error
 from oandapyV20.endpoints.instruments import InstrumentsCandles
+from indicators import calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_atr, calculate_adx, calculate_obv
 
-OANDA_API_KEY = "33a9e22e79a6afe67da0e568b0cca830-cf5e494dfe461d8704057859e229b74e"
+OANDA_API_KEY = "ba62e5ad63f2f3ce2"
 api = API(access_token=OANDA_API_KEY)
 
-ACCOUNT_ID = "101-001-25836141-002"
+ACCOUNT_ID = "101-002"
 INSTRUMENTS = ["GBP_USD"]
 GRANULARITIES = [ "D"]
 
@@ -118,7 +119,7 @@ class Strategies:
         print(f"Number of winning trades: {num_wins}")
         print(f"Number of losing trades: {num_losses}")
 
-    
+
     def Three_MA_Crossover_Strategy(self):
         self.author = "ProfitWave Trading Co."
         self.description = "This strategy uses a three MA crossover approach."
@@ -210,6 +211,57 @@ class Strategies:
         # Add New Strategies Here  #
         #--------------------------#
 
+    def One_Day_Reversal_Strategy(self):
+        self.author = "Your Name"
+        self.description = "This strategy identifies a reversal pattern on a daily candlestick chart."
+
+        balance = 10000                 
+        position = 0
+        buy_price, sell_price = 0, 0
+        stop_loss, take_profit = 0, 0
+        profit, losses = 0, 0
+        entry_prices, exit_prices = [], []
+
+        for i in range(2, len(self.df["close"])): 
+            # Assuming self.df["close"] is the closing prices of the daily candles
+
+            # Enter a long position when a candle closes above the previous one after a series of down candles
+            if self.df["close"][i] > self.df["close"][i-1] and self.df["close"][i-1] < self.df["close"][i-2]:
+                if position != 0:
+                    # Close previous position
+                    if position == 1:
+                        profit += self.df["close"][i] - buy_price
+                    else:
+                        profit += sell_price - self.df["close"][i]
+                    entry_prices.append(buy_price if position == 1 else sell_price)
+                    exit_prices.append(self.df["close"][i])
+
+                # Enter a long position
+                position = 1
+                buy_price = self.df["close"][i]
+                stop_loss = buy_price - self.df["close"][i-1]  # Stop loss at previous candle's closing price
+                take_profit = buy_price + self.df["close"][i-1]  # Take profit at twice the previous candle's closing price
+
+            # Enter a short position when a candle closes below the previous one after a series of up candles
+            elif self.df["close"][i] < self.df["close"][i-1] and self.df["close"][i-1] > self.df["close"][i-2]:
+                if position != 0:
+                    # Close previous position
+                    if position == 1:
+                        profit += self.df["close"][i] - buy_price
+                    else:
+                        profit += sell_price - self.df["close"][i]
+                    entry_prices.append(buy_price if position == 1 else sell_price)
+                    exit_prices.append(self.df["close"][i])
+
+                # Enter a short position
+                position = -1
+                sell_price = self.df["close"][i]
+                stop_loss = sell_price + self.df["close"][i-1]  # Stop loss at previous candle's closing price
+                take_profit = sell_price - self.df["close"][i-1]  # Take profit at twice the previous candle's closing price
+
+        print(f"Profit: {profit}")
+
+    
 
     strategies = {
         "RSI_and_MACD_Crossover_Strategy": {
@@ -219,6 +271,10 @@ class Strategies:
         "Three_MA_Crossover_Strategy": {
             "author": "ProfitWave Trading Co.",
             "func": Three_MA_Crossover_Strategy
+        },
+         "One_Day_Reversal_Strategy": {
+            "author": "Your Name",
+            "func": One_Day_Reversal_Strategy
         }
         # Add more strategies here...
     }
@@ -316,59 +372,6 @@ def save_indicators_to_csv(df, instrument):
         indicator_df = df[["time", indicator]]
         filename = f"{INDICATORS_DIRECTORY}/{instrument}_{indicator}.csv"
         indicator_df.to_csv(filename, index=False)
-
-
-def calculate_rsi(series, window):
-    delta = series.diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=window).mean()
-    avg_loss = loss.rolling(window=window).mean()
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
-
-def calculate_macd(series, window_fast, window_slow, window_signal):
-    ema_fast = series.ewm(span=window_fast, adjust=False).mean()
-    ema_slow = series.ewm(span=window_slow, adjust=False).mean()
-    macd = ema_fast - ema_slow
-    signal_line = macd.ewm(span=window_signal, adjust=False).mean()
-    histogram = macd - signal_line
-    return macd, signal_line, histogram
-
-def calculate_bollinger_bands(series, window):
-    middle_band = series.rolling(window=window).mean()
-    std = series.rolling(window=window).std()
-    return middle_band, std
-
-def calculate_atr(high, low, close, window):
-    tr = np.maximum(high - low, np.abs(high - close.shift()), np.abs(low - close.shift()))
-    atr = tr.rolling(window=window).mean()
-    return atr
-
-def calculate_adx(high, low, close, window):
-    tr = np.maximum(high - low, np.abs(high - close.shift()), np.abs(low - close.shift()))
-    atr = calculate_atr(high, low, close, window)  # Calculate ATR using the separate function
-    plus_dm = np.where((high - high.shift()) > (low.shift() - low), high - high.shift(), 0)
-    minus_dm = np.where((low.shift() - low) > (high - high.shift()), low.shift() - low, 0)
-    plus_di = 100 * (pd.Series(plus_dm).rolling(window=window).mean() / pd.Series(atr).rolling(window=window).mean())
-    minus_di = 100 * (pd.Series(minus_dm).rolling(window=window).mean() / pd.Series(atr).rolling(window=window).mean())
-    dx = 100 * np.abs(plus_di - minus_di) / (plus_di + minus_di)
-    adx = dx.rolling(window=window).mean()
-    return adx
-
-def calculate_obv(close, volume):
-    obv = np.where(close > close.shift(), volume, -volume).cumsum()
-    return obv
-
-
-
-
-        #--------------------------#
-        # Calculate New Indicators #
-        #--------------------------#
-
-
 
 
 

@@ -1,7 +1,11 @@
 
 # Define the phrases for each endpoint
 endpoint_phrases = {
+    "perform_search": ["perform search", "search web", "find on web", "look up"
+    ],
+    
     "create_order": [
+        
         "create an order", "place an order", "execute an order",
         "initiate an order", "start an order", "establish an order",
         "set up an order", "arrange an order", "implement an order",
@@ -27,6 +31,18 @@ endpoint_phrases = {
     ],
     
     
+    "get_latest_forex_news": [
+        "get latest forex news", "latest forex news", "forex news"
+    ],
+    "get_latest_crypto_news": [
+        "get latest crypto news", "latest crypto news", "crypto news"
+    ],
+    "get_latest_stock_market_news": [
+        "get latest stock market news", "latest stock market news", "stock market news"
+    ],
+    "get_company_stock_price": [
+        "get stock price of", "current stock price of"
+    ],
 
     "get_account_details": [
         "fetch my account details", "retrieve account information",
