@@ -1,0 +1,1 @@
+{'backtestResults': '', 'error': None}

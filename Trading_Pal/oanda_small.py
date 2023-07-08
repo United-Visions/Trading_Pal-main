@@ -6,9 +6,9 @@ import configparser
 import winsound
 from words import trading_keywords, endpoint_phrases
 import openai
-from backtest import Strategies
+from gptbacktest import Strategies
 import pandas as pd
-from news import get_google_search_results, generate_gpt3_response
+
 
 
 
@@ -26,7 +26,7 @@ MAX_TOKENS= 3055
 
 # Set the base URL for the OANDA API
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID  = "101-02"
+ACCOUNT_ID  = "101-001-25836141-002"
 
 # The headers for the HTTP requests
 OANDA_API_KEY = config.get('API_KEYS', 'OANDA_API_KEY')
@@ -175,26 +175,7 @@ while True:
 
         
   
-                
-        elif matched_endpoint == "perform_search":
-            user_query = input("Please enter your search query: ")
-            gpt3_prompt = f"Search the web for '{user_query}'"
-            search_results = get_google_search_results(user_query)
-            gpt3_response = generate_gpt3_response(gpt3_prompt, search_results)
-
-            print(f"Search results: {gpt3_response}")
-
-            # Ask for user feedback
-            user_feedback = input("Was the response satisfactory? (yes/no): ")
-            while user_feedback.lower() != 'yes':
-                user_query = input("Please refine your query or ask in a different way: ")
-                gpt3_prompt = f"{gpt3_response}. {user_query}"
-                search_results = get_google_search_results(user_query)
-                gpt3_response = generate_gpt3_response(gpt3_prompt, search_results)
-
-                print(f"Search results: {gpt3_response}")
-                user_feedback = input("Was the response satisfactory? (yes/no): ")
-
+      
 
         else:
             messages.append({"role": "user", "content": user_input})

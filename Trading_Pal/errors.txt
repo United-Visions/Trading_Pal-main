@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\Users\profi\Trading_Pal-main\Trading_Pal-main\backtest_site.py", line 136, in backtest_strategy
+    backtest_results_str = "\n".join(f"{k}: {v}" for k, v in backtest_results.items())
+                                                             ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'items'

@@ -8,7 +8,8 @@ GOOGLE_SEARCH_API_KEY = "AIzaSyCW4n7-aZ3CQDRkEYFX4TZtdtazGbiz_vo"
 GOOGLE_SEARCH_ENGINE_ID = "94c0fff13a575438c"
 
 # Set up OpenAI API
-OPENAI_API_KEY = "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"
+
+OPENAI_API_KEY = "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"
 openai.api_key = OPENAI_API_KEY
 
 # List of sources to search from
@@ -51,7 +52,7 @@ def generate_gpt3_response(prompt, search_results):
             {"role": "system", "content": "You are News GPT, a model specializing in analyzing news articles related to the foreign exchange market."},
             {"role": "user", "content": prompt_with_results}
         ],
-        max_tokens=4000
+        max_tokens=16000
     )
     return response.choices[0].message.content.strip()
 

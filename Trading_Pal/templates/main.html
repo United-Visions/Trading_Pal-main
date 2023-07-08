@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #1f1f1f; /* Set dark background color */
+        }
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #141414;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid #272727;
+            z-index: 1;
+        }
+
+        #header h1 {
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 60px; /* Height of the header */
+            bottom: 0;
+            left: 0;
+            width: 250px;
+            background-color: #141414;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            border-right: 2px solid #272727;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+            color: #fff;
+            text-align: center;
+        }
+
+        .divider {
+            height: 2px;
+            background: #272727;
+        }
+
+        #sidebar button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            color: #fff;
+            background-color: #272727;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #sidebar button:hover {
+            background-color: #353535;
+            transform: translateX(5px);
+        }
+
+        #main-content {
+            margin-left: 290px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 500vh;
+            color: #fff;
+        }
+
+        #main-header {
+            background-color: #141414;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+
+        #backtest-button {
+            margin-right: 15px;
+            background-color: #74767a;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #backtest-button:hover {
+            background-color: #313141;
+        }
+        #social-button {
+            margin-right: 35px;
+            background-color: #74767a;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #social-button:hover {
+            background-color: #313141;
+        }
+        #chat-history {
+            flex-grow: 1;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+            background-color: #141414;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .assistant-message {
+            justify-content: flex-start;
+            background-color: #272727;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .user-bubble {
+            background-color: #141414;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 15px;
+            width: fit-content;
+        }
+
+        .assistant-bubble {
+            background-color: #272727;
+            border-radius: 10px;
+            padding: 10px 15px;
+            width: fit-content;
+        }
+
+        .message-text {
+            margin: 0;
+            font-family: inherit;
+            font-size: inherit;
+            white-space: pre-wrap;
+        }
+
+        #chat-form {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 295px;
+            right: 0;
+            padding: 20px;
+            background-color: #141414;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #272727;
+            color: #fff;
+        }
+
+        #chat-form button {
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #4e69a2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #chat-form button:hover {
+            background-color: #3b528b;
+        }
+
+        #order-parameters-form {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 295px;
+            right: 0;
+            padding: 20px;
+            background-color: #141414;
+        }
+
+        #order-input-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-column label {
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .input-column input[type="text"] {
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            background-color: #272727;
+            color: #fff;
+        }
+
+        #submit-parameters-button {
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #4e69a2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #submit-parameters-button:hover {
+            background-color: #3b528b;
+        }
+
+
+
+    </style>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        axios.defaults.withCredentials = true;
+    </script>
+</head>
+<body>
+    <div id="header">
+        <button id="backtest-button">Backtest</button>
+        <h1>TradingPal 1.0</h1>
+        <button id="social-button">Social</button>
+    </div>
+    <div id="sidebar">
+        <h2>Trading GPT</h2>
+        <button id="New Chat">New Chat</button>
+        <div class="divider"></div>
+        <div id="conversation-history">
+        <!-- The user and assistant conversations will be dynamically added here -->
+    </div>
+        <button id="update-keys-button">Update API Keys</button>
+        <div class="divider"></div>
+        <button id="update-preferences-button">Update Trading Preferences</button>
+        <div class="divider"></div>
+        
+        
+        <div id="Account Updates">
+            <p id="user-balance">Balance: </p>
+            <p id="user-leverage">Leverage: </p>
+            <p id="user-open-positions">Open-Positions: </p>
+            <p id="user-open-trades">Open Trades: </p>
+            <p id="user-available-margin">Available Margin: </p>
+            <p id="user-pl">Profit/Loss: </p>
+            <button>Upgrade Your Account</button>
+        </div>
+    </div>
+    <div id="main-content" style="margin-top: 60px;">
+        <div id="chat-history">
+            <!-- The chat messages will be dynamically added here -->
+        </div>
+        <form id="chat-form">
+            <textarea id="user-input" placeholder="Type your message here..."></textarea>
+            <button type="submit">Send</button>
+        </form>
+        <form id="order-parameters-form" style="display: none;">
+            <div id="order-input-container">
+                <div class="input-column">
+                    <label>Units:</label>
+                    <input type="text" name="units">
+                </div>
+                <div class="input-column">
+                    <label>Instrument:</label>
+                    <input type="text" name="instrument">
+                </div>
+                <div class="input-column">
+                    <label>Order Type:</label>
+                    <input type="text" name="type">
+                </div>
+                <div class="input-column">
+                    <label>Price:</label>
+                    <input type="text" name="price">
+                </div>
+                <div class="input-column">
+                    <label>Take Profit Price:</label>
+                    <input type="text" name="take_profit_price">
+                </div>
+                <div class="input-column">
+                    <label>Stop Loss Price:</label>
+                    <input type="text" name="stop_loss_price">
+                </div>
+                <div class="input-column">
+                    <label>Guaranteed Stop Loss Price:</label>
+                    <input type="text" name="guaranteed_stop_loss_price">
+                </div>
+                <div class="input-column">
+                    <label>Trailing Stop Loss Distance:</label>
+                    <input type="text" name="trailing_stop_loss_distance">
+                </div>
+            </div>
+            <div class="input-column">
+                <button id="submit-parameters-button" type="submit">Submit</button>
+            </div>
+        </form>
+        
+    </div>
+    
+    <script>
+        // Function to sanitize user input
+        function sanitize(input) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+    
+            return String(input).replace(/[&<>"']/g, function (m) { return map[m]; });
+        }
+    
+        // Function to handle the submission of the chat form
+        document.getElementById('chat-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            let userInput = document.getElementById('user-input');
+            let userText = sanitize(userInput.value);
+            userInput.value = '';
+    
+            let userHtml = `<div class="user-message"><div class="user-bubble"><pre class="message-text"><code>${userText}</code></pre></div></div>`;
+            document.getElementById('chat-history').innerHTML += userHtml;
+    
+            // Check if the user requested to create an order
+            if (userText.toLowerCase() === 'create order') {
+                // Hide the chat form and display the order parameters form
+                document.getElementById('chat-form').style.display = 'none';
+                document.getElementById('order-parameters-form').style.display = 'block';
+            } else {
+                // Send the user's message to the server to generate a response
+                axios({
+                    method: 'post',
+                    url: '/api/v1/query',
+                    data: {
+                        message: userText
+                    },
+                    withCredentials: true
+                })
+                    .then(function (response) {
+                        let assistantText = sanitize(response.data.response);
+                        let assistantHtml = `<div class="assistant-message"><div class="assistant-bubble"><pre class="message-text"><code>${assistantText}</code></pre></div></div>`;
+                        document.getElementById('chat-history').innerHTML += assistantHtml;
+                    })
+                    .catch(function (error) {
+                        console.error(error);
+                    });
+            }
+        });
+    
+        // Function to handle the submission of the order parameters form
+        document.getElementById('order-parameters-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+    
+            // Retrieve the form input values
+            const form = new FormData(document.getElementById('order-parameters-form'));
+            const units = form.get('units');
+            const instrument = form.get('instrument');
+            const orderType = form.get('type');
+            const price = form.get('price');
+            const takeProfitPrice = form.get('take_profit_price');
+            const stopLossPrice = form.get('stop_loss_price');
+            const guaranteedStopLossPrice = form.get('guaranteed_stop_loss_price');
+            const trailingStopLossDistance = form.get('trailing_stop_loss_distance');
+            
+            // Create an object with the order parameters
+            const orderData = {
+                order: {
+                    units: units,
+                    instrument: instrument,
+                    type: orderType,
+                    positionFill: 'DEFAULT'
+                }
+            };
+    
+            // Add additional parameters based on the order type
+            if (orderType === 'LIMIT' || orderType === 'STOP') {
+                orderData.order.price = price;
+            }
+    
+            if (takeProfitPrice) {
+                orderData.order.takeProfitOnFill = {
+                    timeInForce: 'GTC',
+                    price: takeProfitPrice
+                };
+            }
+    
+            if (stopLossPrice) {
+                orderData.order.stopLossOnFill = {
+                    timeInForce: 'GTC',
+                    price: stopLossPrice
+                };
+            }
+    
+            if (guaranteedStopLossPrice) {
+                orderData.order.guaranteedStopLossOnFill = {
+                    timeInForce: 'GTC',
+                    price: guaranteedStopLossPrice
+                };
+            }
+    
+            if (trailingStopLossDistance) {
+                orderData.order.trailingStopLossOnFill = {
+                    distance: trailingStopLossDistance
+                };
+            }
+    
+            // Send the order data to the server to create the order
+            axios.post('/api/v1/create_order', orderData)
+                .then(function (response) {
+                    const assistantResponse = sanitize(response.data.response);
+    
+                    // Display the assistant's response in the chat history
+                    const assistantHtml = `<div class="assistant-message"><div class="assistant-bubble"><pre class="message-text"><code>${assistantResponse}</code></pre></div></div>`;
+                    document.getElementById('chat-history').innerHTML += assistantHtml;
+    
+                    // Scroll to the bottom of the chat history
+                    document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+    
+                    // Hide the order parameters form and display the chat form
+                    document.getElementById('order-parameters-form').style.display = 'none';
+                    document.getElementById('chat-form').style.display = 'block';
+                })
+                .catch(function (error) {
+                    console.error(error);
+                });
+        });
+    
+
+        setInterval(function() {
+            axios.get('/api/v1/account_details')
+                .then(function (response) {
+                    let accountData = response.data;
+                    if (accountData.error) {
+                        console.error("Error: ", accountData.error);
+                        return;
+                    }
+
+                    // Extracting the account details from the response data.
+                    let accountDetails = accountData.account;
+
+                    // Setting the account details on the web page.
+                    document.getElementById('user-balance').innerText = "Balance: " + accountDetails.balance;
+                    document.getElementById('user-leverage').innerText = "Leverage: " + accountDetails.marginRate;  // Assuming 'marginRate' is equivalent to leverage.
+                    document.getElementById('user-open-positions').innerText = "Open Positions: " + accountDetails.openPositionCount;
+                    document.getElementById('user-open-trades').innerText = "Open Trades: " + accountDetails.openTradeCount;
+                    document.getElementById('user-available-margin').innerText = "Available Margin: " + accountDetails.marginAvailable;
+                    document.getElementById('user-pl').innerText = "Profit/Loss: " + accountDetails.pl;
+                })
+                .catch(function (error) {
+                    console.error("Axios Error: ", error);
+                });
+        }, 60000); // 60000 milliseconds = 1 minute
+
+        document.getElementById('update-keys-button').addEventListener('click', function() {
+            // Update the API keys
+            // ...
+        });
+
+        document.getElementById('New Chat').addEventListener('click', function (e) {
+            e.preventDefault();
+            // Create a new chat
+            // ...
+        });
+
+        document.getElementById('backtest-button').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = "http://localhost:5001";
+        });
+
+        document.getElementById('social-button').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = "http://localhost:5004";
+        });
+
+
+
+
+    function addConversationToHistory(message, messageName, editable=true) {
+        // Create new message div
+        let messageDiv = document.createElement("div");
+        messageDiv.className = "message-history-entry";
+
+        // Add message name
+        let messageNameInput = document.createElement("input");
+        messageNameInput.type = "text";
+        messageNameInput.value = messageName;
+        messageNameInput.disabled = !editable;
+        messageNameInput.className = "message-name";
+        messageDiv.appendChild(messageNameInput);
+
+        // Add edit button
+        let editButton = document.createElement("button");
+        editButton.innerHTML = "✏️";
+        editButton.className = "edit-button";
+        editButton.addEventListener('click', function() {
+            // Toggle disabled status on click
+            messageNameInput.disabled = !messageNameInput.disabled;
+        });
+        messageDiv.appendChild(editButton);
+
+        // Add delete button
+        let deleteButton = document.createElement("button");
+        deleteButton.innerHTML = "❌";
+        deleteButton.className = "delete-button";
+        deleteButton.addEventListener('click', function() {
+            // Remove message from history
+            messageDiv.remove();
+        });
+        messageDiv.appendChild(deleteButton);
+
+        // Add message text
+        let messageText = document.createElement("p");
+        messageText.innerText = message;
+        messageText.className = "message-text";
+        messageDiv.appendChild(messageText);
+
+        // Append to conversation history
+        document.getElementById('conversation-history').appendChild(messageDiv);
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        let userInput = document.getElementById('user-input');
+        let userText = sanitize(userInput.value);
+        userInput.value = '';
+
+        addConversationToHistory(userText, "Unnamed", true);
+        
+    });
+
+    </script>
+</body>
+</html>

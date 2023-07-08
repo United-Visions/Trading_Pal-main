@@ -34,7 +34,7 @@
     </style>
 </head>
 <body>
-    <form action="/register" method="POST">
+    <form action="/register" method="POST" id="register-form" onsubmit="event.preventDefault(); submitRegister();">
         <label for="name">Name:</label><br>
         <input type="text" id="name" name="name" required><br>
         <label for="username">Username:</label><br>
@@ -58,21 +58,26 @@
         <input type="text" id="openai_api_key" name="openai_api_key" required><br>
         <input type="submit" value="Submit">
     </form>
-    
-    <script>
+      <!-- Error Message -->
+      <div id="error-message" style="color: red; text-align: center;"></div>
+      <script>
         function submitRegister() {
             fetch('/register', {
                 method: 'POST',
                 body: new FormData(document.getElementById('register-form')),
             })
-            .then(response => {
-                if (response.ok) {
+            .then(response => response.json())  // Assuming your server sends JSON
+            .then(data => {
+                if (data.status === 'success') {
                     window.location.href = '/index';  // Redirect to main page
                 } else {
-                    alert('Registration failed');
+                    document.getElementById('error-message').innerText = data.message;
                 }
+            })
+            .catch(() => {
+                document.getElementById('error-message').innerText = 'Registration failed';
             });
         }
-        </script>
+    </script>
 </body>
 </html>

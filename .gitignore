@@ -1,4 +1,5 @@
-config.ini
+
+.venv
 indicators/GBP_USD_ADX.csv
 indicators/GBP_USD_ATR.csv
 indicators/GBP_USD_BollingerBands_middle.csv

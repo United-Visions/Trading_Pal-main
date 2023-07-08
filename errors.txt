@@ -1,0 +1,176 @@
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 64, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 255, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 67, in create_order
+    raise Exception(f"Failed to create order. Error: {err}")
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 70, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 268, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 80, in create_order
+    raise Exception(error_message) from err
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 70, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 268, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 80, in create_order
+    raise Exception(error_message) from err
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 70, in create_order
+    response.raise_for_status()
+  File "C:\Users\profi\Trading_Pal-main\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 268, in create_order_route
+    order_response = create_order(ACCOUNT_ID, order_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\profi\Trading_Pal-main\Trading_Pal-main\main.py", line 80, in create_order
+    raise Exception(error_message) from err
+Exception: Failed to create order. Error: 400 Client Error: Bad Request for url: https://api-fxpractice.oanda.com/v3/accounts/101-001-25836141-002/orders
