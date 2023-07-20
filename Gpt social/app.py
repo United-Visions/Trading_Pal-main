@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
-import csv
 import openai
 
-openai.api_key = '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'
+openai.api_key = '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'
 
 app = Flask(__name__, static_url_path='')
+posts = []
 
-# Function to get AI response
 def get_ai_response(message):
     try:
         print("Generating AI response...")
@@ -25,60 +24,56 @@ def get_ai_response(message):
         return ''
 
 @app.route('/')
-def home():
-    print("Home route accessed")
+def index():
     return send_from_directory('static', 'index.html')
 
-@app.route('/post_message', methods=['POST'])
-def post_message():
-    user_message = request.json['user_message']
-    print(f"Received user message: {user_message}")
+@app.route('/create_post', methods=['POST'])
+def create_post():
+    content = request.form.get('content')
+    print(f"Received post content: {content}")
 
-    comments = []
-    if '#heytradingpal' in user_message:
-        message = user_message.replace('#heytradingpal', "").strip()
-        print(f"Processing user message: {message}")
-        ai_response = get_ai_response(message)
-        comments.append("TradingPal: " + ai_response)
-        print(f"Added AI comment to post: {ai_response}")
+    ai_comments = []
+    if '#gpt' in content:
+        message = content.replace('#gpt', "").strip()
+        print(f"Processing AI message: {message}")
+        ai_comment = get_ai_response(message)
+        ai_comments.append(ai_comment)
+        print(f"AI comment added to post: {ai_comment}")
 
-    try:
-        with open('user_posts.csv', 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([user_message, comments])
-            print(f"Saved post to CSV: {user_message}, {comments}")
-    except Exception as e:
-        print("Error writing to CSV file: ", str(e))
+    new_post = {
+        'content': content,
+        'comments': ai_comments
+    }
+    posts.append(new_post)
 
-    return jsonify({'user_message': user_message, 'comments': comments})
+    return jsonify(success=True)
 
-@app.route('/post_comment', methods=['POST'])
-def post_comment():
-    user_comment = request.json['comment']
-    print(f"Received user comment: {user_comment}")
+@app.route('/create_comment', methods=['POST'])
+def create_comment():
+    content = request.form.get('content')
+    post_id = request.form.get('post_id')
+    print(f"Received comment content: {content} for post with id: {post_id}")
 
-    ai_comment = ''
-    if '#heytradingpal' in user_comment:
-        message = user_comment.replace('#heytradingpal', "").strip()
-        print(f"Processing user comment: {message}")
-        ai_comment = "TradingPal: " + get_ai_response(message)
-        print(f"Generated AI comment: {ai_comment}")
+    ai_comments = []
+    if '#gpt' in content:
+        message = content.replace('#gpt', "").strip()
+        print(f"Processing AI message: {message}")
+        ai_comment = get_ai_response(message)
+        ai_comments.append(ai_comment)
+        print(f"AI comment added: {ai_comment}")
 
-    return jsonify({'ai_comment': ai_comment})
+    for post in posts:
+        if post_id == str(id(post)):
+            post['comments'].append(content)
+            break
 
-@app.route('/get_messages', methods=['GET'])
-def get_messages():
-    print("Fetching all messages from CSV file")
-    try:
-        with open('user_posts.csv') as file:
-            posts = list(csv.reader(file))
-        print(f"Fetched {len(posts)} posts")
-        return jsonify(posts)
-    except Exception as e:
-        print("Error reading from CSV file: ", str(e))
-        return jsonify([])
+    return jsonify(success=True)
 
-if __name__ == '__main__':
-    with app.app_context():
-        print("Starting the application")
-        app.run(port=5004, debug=True)
+@app.route('/get_posts', methods=['GET'])
+def get_posts():
+    print("Fetching all posts.")
+    return jsonify(posts)
+
+if __name__ == "__main__":
+    print("Starting the application")
+    app.run(port=5004, debug=True)

@@ -1,112 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>TradingPal Community</title>
+    <title>Simple Social Media</title>
     <style>
         body {
+            background-color: #333;
+            color: #f5f5f5;
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            background-color: #1f1f1f;
-            color: #fff;
         }
-        #header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #141414;
-            color: #fff;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-            border-bottom: 2px solid #272727;
-            z-index: 1;
-        }
-        #header h1 {
-            margin: 0;
-            flex-grow: 1;
-            text-align: center;
-        }
+
         .post {
-            border: 1px solid #272727;
+            background-color: #555;
             margin-bottom: 20px;
             padding: 20px;
             border-radius: 5px;
-            background-color: #141414;
+            position: relative;
         }
-        .post .user_message {
-            color: #74767a;
-        }
-        .post .ai_response {
-            color: #4e69a2;
-        }
-        .post_form {
-            margin-top: 100px;
-            padding: 20px;
-        }
-        #posts {
-            margin-top: 20px;
-            padding: 20px;
+
+        .post .comment-section {
+            margin-top: 10px;
+            margin-left: 30px;
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
-    <div id="header">
-        <h1>Welcome to TradingPal Community</h1>
-    </div>
-
-    <div class="post_form">
-        <form id="post_form">
-            <div class="form-group">
-                <textarea class="form-control" name="user_message" required placeholder="Share your trading ideas..." style="background-color: #272727; color: #fff;"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary" style="background-color: #4e69a2; border: none;">Post</button>
-        </form>
-    </div>
-
+    <h1>Simple Social Media</h1>
+    <form id="post_form">
+        <label for="post_input">Create a Post:</label><br>
+        <textarea id="post_input" name="content" rows="4" cols="50"></textarea><br>
+        <input type="submit" value="Submit">
+    </form>
     <div id="posts"></div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script>
-        $(function() {
-            function loadPosts() {
-                $.getJSON('/get_messages', function(posts) {
-                    $('#posts').empty();
-                    posts.reverse().forEach(function(post) {
-                        var user_message = post[0];
-                        var ai_response = post[1];
-                        var html = '<div class="post"><div class="user_message">User: ' + user_message + '</div>';
-                        if (ai_response) {
-                            html += '<div class="ai_response">TradingPal: ' + ai_response + '</div>';
-                        }
-                        html += '</div>';
-                        $('#posts').append(html);
-                    });
-                });
-            }
+        $(document).ready(function() {
+            fetchPosts();
 
             $('#post_form').on('submit', function(e) {
                 e.preventDefault();
-                var user_message = $(this).find('[name="user_message"]').val();
+                var content = $('#post_input').val();
                 $.ajax({
-                    url: '/post_message',
+                    url: '/create_post',
+                    data: {'content': content},
                     type: 'POST',
-                    data: JSON.stringify({user_message: user_message}),
-                    contentType: 'application/json; charset=utf-8',
-                    dataType: 'json',
-                    success: function(data) {
-                        $('#post_form')[0].reset();
-                        loadPosts();
+                    success: function(response) {
+                        if (response.success) {
+                            $('#post_input').val('');
+                            fetchPosts();
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
                     }
                 });
             });
-
-            loadPosts();
         });
+
+        function fetchPosts() {
+            $.ajax({
+                url: '/get_posts',
+                type: 'GET',
+                success: function(response) {
+                    $('#posts').empty();
+                    $.each(response, function(i, post) {
+                        var postId = 'post_' + i;
+                        var postHtml = '<div class="post" id="' + postId + '"><h2>' + post.content + '</h2><div class="comment-section">';
+                        $.each(post.comments, function(j, comment) {
+                            postHtml += '<p>' + comment + '</p>';
+                        });
+                        postHtml += '</div><form class="comment_form"><textarea name="content" rows="2" cols="50"></textarea><br><input type="submit" value="Comment"></form></div>';
+                        $('#posts').prepend(postHtml);
+
+                        $('#' + postId + ' .comment_form').on('submit', function(e) {
+                            e.preventDefault();
+                            var content = $(this).find('textarea').val();
+                            $.ajax({
+                                url: '/create_comment',
+                                data: {'content': content, 'post_id': postId},
+                                type: 'POST',
+                                success: function(response) {
+                                    if (response.success) {
+                                        $(this).find('textarea').val('');
+                                        fetchPosts();
+                                    }
+                                },
+                                error: function(error) {
+                                    console.log(error);
+                                }
+                            });
+                        });
+                    });
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
     </script>
 </body>
 </html>

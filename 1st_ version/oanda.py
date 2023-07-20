@@ -167,35 +167,6 @@ def get_account_summary(ACCOUNT_ID):
     except requests.exceptions.HTTPError as err:
         raise Exception(f"Failed to get account summary. Error: {err}")
 
-def get_candlestick_data(instrument, granularity):
-    url = f"{BASE_URL}/v3/instruments/{instrument}/candles"
-    params = {
-        "granularity": granularity
-    }
-    response = requests.get(url, headers=headers, params=params)
-    try:
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        raise Exception(f"Failed to get candlestick data. Error: {err}")
-
-def get_order_book(instrument):
-    url = f"{BASE_URL}/v3/instruments/{instrument}/orderBook"
-    response = requests.get(url, headers=headers)
-    try:
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        raise Exception(f"Failed to get order book. Error: {err}")
-
-def get_position_book(instrument):
-    url = f"{BASE_URL}/v3/instruments/{instrument}/positionBook"
-    response = requests.get(url, headers=headers)
-    try:
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        raise Exception(f"Failed to get position book. Error: {err}")
 
 def get_accounts():
     url = f"{BASE_URL}/v3/accounts"
@@ -424,14 +395,6 @@ def get_transactions_since_id(ACCOUNT_ID, since_id):
     except requests.exceptions.HTTPError as err:
         raise Exception(f"Failed to get transactions since ID. Error: {err}")
 
-def get_transaction_stream(ACCOUNT_ID):
-    url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/transactions/stream"
-    response = requests.get(url, headers=headers, stream=True)
-    try:
-        response.raise_for_status()
-        return response.iter_lines()
-    except requests.exceptions.HTTPError as err:
-        raise Exception(f"Failed to get transaction stream. Error: {err}")
 
 def get_latest_candles(instrument, granularity):
     url = f"{BASE_URL}/v3/instruments/{instrument}/candles/latest"
@@ -498,11 +461,6 @@ def get_tradeable_instruments(ACCOUNT_ID):
                         #------------------------------
                         #-       Main Loop            -
                         #------------------------------
-
-import oandapyV20
-from oandapyV20 import API
-from oandapyV20.exceptions import V20Error
-from oandapyV20.endpoints.orders import OrderCreate
 
 # set up your API credentials and account ID
 api = API(access_token="33a9e22e79a6afe67da0e568b0cca830-cf5e494dfe461d8704057859e229b74e", environment="practice")

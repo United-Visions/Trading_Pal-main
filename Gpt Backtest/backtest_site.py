@@ -10,8 +10,8 @@ import traceback
 import requests
 
 app = Flask(__name__)
-OANDA_API_KEY = "ba62e5ad63f2a8759ee31761ba01e196-fb6f30ba3b58d44a94152fa5cd4f3ce2"
-OPENAI_API_KEY = "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"
+OANDA_API_KEY = "f7501c9e6231ab183360c4eb468eee7d-6530b7bf8b31cd881e2d17ba449a9590"
+OPENAI_API_KEY = "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"
 api = API(access_token=OANDA_API_KEY)
 openai.api_key = OPENAI_API_KEY
 INDICATORS_DIRECTORY = "indicators"
@@ -179,3 +179,4 @@ def backtest_strategy():
 if __name__ == "__main__":
     print("Starting server...")
     app.run(port=5001, debug=True, use_reloader=True)
+ 

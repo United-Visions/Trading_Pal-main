@@ -1,4 +1,5 @@
-
+myenv
+config.ini
 .venv
 indicators/GBP_USD_ADX.csv
 indicators/GBP_USD_ATR.csv
