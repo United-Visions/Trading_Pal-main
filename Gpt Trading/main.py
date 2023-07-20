@@ -48,7 +48,7 @@ polly_client = session.client('polly')
 
 # Set the base URL for the OANDA API and the account ID
 BASE_URL = "https://api-fxpractice.oanda.com"
-ACCOUNT_ID = "101-001-25836141-002"
+ACCOUNT_ID = "101-001-25836"
 
 # The headers for the HTTP requests
 headers = {
