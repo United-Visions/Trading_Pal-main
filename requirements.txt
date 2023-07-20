@@ -55,7 +55,7 @@ decorator==5.1.1
 discordwebhook==1.0.3
 distlib==0.3.6
 distro==1.8.0
-
+gunicorn
 dnspython==2.3.0
 docker==6.1.2
 docutils==0.20.1
