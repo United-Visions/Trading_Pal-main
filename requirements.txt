@@ -179,11 +179,9 @@ PyJWT==2.7.0
 pymdown-extensions==10.0.1
 pyOpenSSL==23.1.1
 pyparsing==3.0.9
-pypiwin32==223
+
 pyproject-toml==0.0.10
-PyQt5==5.15.9
-PyQt5-Qt5==5.15.2
-PyQt5-sip==12.12.1
+
 pyrsistent==0.19.3
 PySocks==1.7.1
 pytest==7.3.1
