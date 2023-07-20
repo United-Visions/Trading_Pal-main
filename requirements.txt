@@ -199,7 +199,7 @@ python-socketio==5.8.0
 python-telegram-bot==20.3
 pyttsx3==2.90
 pytz==2023.3
-pywin32==306
+
 PyYAML==6.0
 pyyaml_env_tag==0.1
 pyzmq==25.0.2
