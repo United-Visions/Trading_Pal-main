@@ -8,8 +8,8 @@ from indicators import calculate_rsi, calculate_macd, calculate_bollinger_bands,
 import traceback
 import requests
 
-OANDA_API_KEY = "ba62e5ad63f2a8759ee31761ba01e196-fb6f30ba3b58d44a94152fa5cd4f3ce2"
-OPENAI_API_KEY = "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"
+OANDA_API_KEY = "ba62e5ad63f2a8759ee31761ba0fa5cd4f3ce2"
+OPENAI_API_KEY = "sk-"
 api = API(access_token=OANDA_API_KEY)
 openai.api_key = OPENAI_API_KEY
 INDICATORS_DIRECTORY = "indicators"

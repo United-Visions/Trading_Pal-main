@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import openai
 
-openai.api_key = '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'
+openai.api_key = 'sk'
 
 app = Flask(__name__, static_url_path='')
 posts = []

@@ -44,7 +44,7 @@ def download_forex_data(api_key, instrument, granularity, start, end, output_fil
 
 
 if __name__ == "__main__":
-    api_key = "33a9e22e79a6afe67da0e568b0cca830-cf5e494dfe461d8704057859e229b74e"
+    api_key = "33a9e22e7229b74e"
     instrument = "EUR_USD"
 
     granularity = "S5", "M1","M5", "M15"

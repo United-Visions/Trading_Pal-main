@@ -4,12 +4,12 @@ from bs4 import BeautifulSoup
 import time
 
 # Set up Google Search API
-GOOGLE_SEARCH_API_KEY = "AIzaSyCW4n7-aZ3CQDRkEYFX4TZtdtazGbiz_vo"
-GOOGLE_SEARCH_ENGINE_ID = "94c0fff13a575438c"
+GOOGLE_SEARCH_API_KEY = "AIzaSyCW4tazGbiz_vo"
+GOOGLE_SEARCH_ENGINE_ID = "94c0fff8c"
 
 # Set up OpenAI API
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "sk-"
 openai.api_key = OPENAI_API_KEY
 
 # List of sources to search from

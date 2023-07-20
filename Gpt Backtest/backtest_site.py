@@ -10,8 +10,8 @@ import traceback
 import requests
 
 app = Flask(__name__)
-OANDA_API_KEY = "f7501c9e6231ab183360c4eb468eee7d-6530b7bf8b31cd881e2d17ba449a9590"
-OPENAI_API_KEY = "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"
+OANDA_API_KEY = ""
+OPENAI_API_KEY = "sk-"
 api = API(access_token=OANDA_API_KEY)
 openai.api_key = OPENAI_API_KEY
 INDICATORS_DIRECTORY = "indicators"
