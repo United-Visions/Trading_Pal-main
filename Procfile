@@ -1,1 +1,1 @@
-web: gunicorn main.py:app
+web: gunicorn Gpt_Trading.main:app
