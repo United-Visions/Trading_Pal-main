@@ -15,9 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle backtest button click
-    backtestBtn.addEventListener('click', () => {
-        window.location.href = '/backtest';
-    });
+    if (backtestBtn) {
+        backtestBtn.addEventListener('click', () => {
+            window.location.href = '/backtest';
+        });
+    }
 
     // Add handler for main button if it exists
     const mainBtn = document.getElementById('main-btn');

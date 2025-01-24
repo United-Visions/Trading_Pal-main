@@ -15,8 +15,6 @@ from oandapyV20.endpoints.instruments import InstrumentsCandles
 from indicators import calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_atr, calculate_adx, calculate_obv
 from words import endpoint_phrases, trading_keywords
 from tools import ToolRegistry
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -45,9 +43,7 @@ headers = {
 }
 
 database = []  # In-memory storage for strategies before db integration
-
 INDICATORS_DIRECTORY = "indicators_directory"
-
 # Function definitions
 def get_account_details():
     """Get account details with enhanced error handling"""
@@ -185,76 +181,26 @@ def execute_endpoint_action(intent, user_message=None):
         error_message = f"Failed to execute {intent}: {str(e)}"
         return jsonify({"error": error_message}), 500
 
-def analyze_market_data(instrument: str) -> dict:
-    """Analyze recent market data to determine trade direction"""
-    try:
-        # Get last 24 hourly candles
-        params = {
-            "count": 24,
-            "granularity": "H1"
-        }
-        r = InstrumentsCandles(instrument=instrument, params=params)
-        api.request(r)
-        
-        records = []
-        for candle in r.response["candles"]:
-            record = {
-                "time": candle["time"],
-                "volume": float(candle["volume"]),
-                "open": float(candle["mid"]["o"]),
-                "high": float(candle["mid"]["h"]),
-                "low": float(candle["mid"]["l"]),
-                "close": float(candle["mid"]["c"])
-            }
-            records.append(record)
-            
-        df = pd.DataFrame(records)
-        
-        # Calculate key metrics
-        analysis = {
-            "highest_high": df["high"].max(),
-            "lowest_low": df["low"].min(),
-            "current_price": df["close"].iloc[-1],
-            "avg_volume": df["volume"].mean(),
-            "price_change": df["close"].iloc[-1] - df["open"].iloc[0],
-            "trend": "neutral"
-        }
-        
-        # Add technical indicators
-        df["RSI"] = calculate_rsi(df["close"])
-        df["MACD"], df["Signal"], _ = calculate_macd(df["close"])
-        
-        analysis["rsi"] = df["RSI"].iloc[-1]
-        analysis["macd"] = df["MACD"].iloc[-1]
-        analysis["signal"] = df["Signal"].iloc[-1]
-        
-        # Determine trend
-        if analysis["price_change"] > 0 and analysis["rsi"] > 50:
-            analysis["trend"] = "bullish"
-        elif analysis["price_change"] < 0 and analysis["rsi"] < 50:
-            analysis["trend"] = "bearish"
-            
-        return analysis
-        
-    except Exception as e:
-        print(f"Error analyzing market data: {str(e)}")
-        return None
-
 def extract_order_details(message: str) -> dict:
-    """Extract order details and analyze market if direction not specified"""
+    """Extract order details from user message and add smart defaults"""
     message = message.lower()
     
-    # Default order structure
+    # Default order structure matching OANDA's expected format
     order_data = {
         "order": {
             "type": "MARKET",
+            "instrument": "USD_JPY",  # Will be overwritten if found in message
             "timeInForce": "FOK",
             "positionFill": "DEFAULT",
-            "units": "100"  # Default position size
+            "units": "100",  # Default position size
+            "trailingStopLossOnFill": {
+                "distance": "0.05",  # Default 5 pips trailing stop
+                "timeInForce": "GTC"
+            }
         }
     }
     
-    # Extract currency pair
+    # Extract currency pair with proper formatting
     pairs_map = {
         "usd/jpy": "USD_JPY",
         "eur/usd": "EUR_USD",
@@ -264,70 +210,61 @@ def extract_order_details(message: str) -> dict:
         "usd/cad": "USD_CAD"
     }
     
-    # Find currency pair
+    # Find currency pair in message
     for pair_text, pair_code in pairs_map.items():
-        if pair_text in message.replace(" ", ""):
+        if pair_text in message.replace(" ", ""):  # Remove spaces for matching
             order_data["order"]["instrument"] = pair_code
             break
-            
-    if "instrument" not in order_data["order"]:
-        return None
-        
-    # Determine direction from message or market analysis
-    if "buy" in message:
-        order_data["order"]["units"] = "100"
-    elif "sell" in message:
-        order_data["order"]["units"] = "-100"
-    else:
-        # Analyze market to determine direction
-        analysis = analyze_market_data(order_data["order"]["instrument"])
-        if analysis:
-            if analysis["trend"] == "bullish" and analysis["rsi"] < 70:
-                order_data["order"]["units"] = "100"
-                order_data["market_analysis"] = analysis
-            elif analysis["trend"] == "bearish" and analysis["rsi"] > 30:
-                order_data["order"]["units"] = "-100"
-                order_data["market_analysis"] = analysis
-            else:
-                return {"error": "No clear trading opportunity based on current market conditions"}
     
-    # Add trailing stop loss
+    # Determine direction (buy/sell)
+    if "buy" in message:
+        order_data["order"]["units"] = "100"  # Positive for buy
+    elif "sell" in message:
+        order_data["order"]["units"] = "-100"  # Negative for sell
+    
+    # Extract specific units if provided
+    import re
+    units_match = re.search(r'(\d+)\s*(?:units?|lots?)', message)
+    if units_match:
+        units = int(units_match.group(1))
+        order_data["order"]["units"] = str(units if "sell" not in message else -units)
+    
+    # Add trailing stop loss by default for protection
     pair = order_data["order"]["instrument"]
     volatility_map = {
-        "USD_JPY": "0.200",
-        "EUR_USD": "0.0020",
-        "GBP_USD": "0.0025",
-        "USD_CHF": "0.0020",
-        "AUD_USD": "0.0015",
-        "USD_CAD": "0.0020"
+        "USD_JPY": "0.200",    # 20 pips for JPY pairs
+        "EUR_USD": "0.0020",   # 20 pips for EUR pairs
+        "GBP_USD": "0.0025",   # 25 pips for GBP pairs
+        "USD_CHF": "0.0020",   # 20 pips for CHF pairs
+        "AUD_USD": "0.0015",   # 15 pips for AUD pairs
+        "USD_CAD": "0.0020"    # 20 pips for CAD pairs
     }
     
+    # Add trailing stop loss
     order_data["order"]["trailingStopLossOnFill"] = {
         "distance": volatility_map.get(pair, "0.0020"),
         "timeInForce": "GTC"
     }
     
+    print(f"[extract_order_details] Generated order data: {json.dumps(order_data, indent=2)}")
     return order_data
 
 def get_ai_response(user_message: str, available_data: dict = None) -> str:
-    """Get AI response with market analysis awareness"""
+    """Get AI response with tool awareness"""
     system_prompt = f"""You are Trading Pal 1.0, a sophisticated AI trading assistant.
     You have access to the following tools:
     
     {tool_registry.get_tool_descriptions()}
     
     When a user asks to place an order:
-    1. If no direction (buy/sell) is specified:
-       - Analyze recent market data
-       - Look for clear trading opportunities based on trend and indicators
-       - Only place order if there's a high-probability setup
-       - Explain the analysis and why you chose buy/sell or no trade
-    2. Call create_order tool with: <tool>create_order|account_id={ACCOUNT_ID}|data=ORDER_DETAILS</tool>
+    1. If only a currency pair is mentioned, create a market order with smart defaults including trailing stop loss
+    2. Call the create_order tool with: <tool>create_order|account_id={ACCOUNT_ID}|data=ORDER_DETAILS</tool>
     3. Wait for the order response
-    4. Explain:
-       - Market analysis results if performed
-       - Order details and reasoning
-       - Risk management settings (trailing stop)
+    4. Explain to the user:
+       - The order details
+       - That a trailing stop loss was added for protection
+       - How the trailing stop loss works
+       - That the position size was set to a conservative default
     
     For other requests requiring tools:
     1. Identify which tool is needed
@@ -358,29 +295,95 @@ def extract_instrument(message):
             return pair
     return None
 
-def load_historical_data(instrument, granularity, count):
-    params = {"granularity": granularity, "count": count}
-    r = InstrumentsCandles(instrument=instrument, params=params)
-    api.request(r)
+def standardize_currency_pair(pair):
+    """Standardize currency pair format for OANDA API"""
+    print(f"[standardize_currency_pair] Input pair: {pair}")
+    
+    # Remove any spaces and convert to uppercase
+    pair = pair.strip().upper().replace(" ", "")
+    
+    # Handle common separators
+    for sep in ['/', '_', '-', '.']:
+        if sep in pair:
+            parts = pair.split(sep)
+            if len(parts) == 2:
+                return f"{parts[0]}_{parts[1]}"
+    
+    # If no separator found but length is 6, assume it's a direct currency pair
+    if len(pair) == 6:
+        return f"{pair[:3]}_{pair[3:]}"
+        
+    print(f"[standardize_currency_pair] Could not standardize pair: {pair}")
+    return None
 
+def validate_timeframe(timeframe):
+    """Validate and standardize timeframe format"""
+    print(f"[validate_timeframe] Input timeframe: {timeframe}")
+    
+    # Map common timeframe formats to OANDA format
+    timeframe_map = {
+        '1h': 'H1', 'h1': 'H1', 'hour': 'H1', '1hour': 'H1',
+        '4h': 'H4', 'h4': 'H4',
+        '1d': 'D', 'd1': 'D', 'day': 'D', '1day': 'D',
+        '1m': 'M1', 'm1': 'M1', 'minute': 'M1',
+        '30m': 'M30', 'm30': 'M30'
+    }
+    
+    timeframe = timeframe.lower()
+    if timeframe in timeframe_map:
+        return timeframe_map[timeframe]
+    
+    print(f"[validate_timeframe] Invalid timeframe format: {timeframe}")
+    return None
+
+def load_historical_data(instrument, granularity, count):
+    """Load historical data with improved error handling and validation"""
+    print(f"[load_historical_data] Loading data for {instrument} with granularity {granularity} and count {count}")
+    
+    # Validate and standardize inputs
+    std_instrument = standardize_currency_pair(instrument)
+    if not std_instrument:
+        raise ValueError(f"Invalid currency pair format: {instrument}")
+    
+    std_granularity = validate_timeframe(granularity)
+    if not std_granularity:
+        raise ValueError(f"Invalid timeframe format: {granularity}")
+    
+    params = {"granularity": std_granularity, "count": count}
+    print(f"[load_historical_data] Requesting data for {std_instrument} with params {params}")
+    
+    r = InstrumentsCandles(instrument=std_instrument, params=params)
+    
+    try:
+        api.request(r)
+        print(f"[load_historical_data] Successfully loaded data for {std_instrument}")
+    except V20Error as e:
+        print(f"[load_historical_data] OANDA API Error: {e}")
+        raise ValueError(f"Failed to fetch data: {str(e)}")
+    except Exception as e:
+        print(f"[load_historical_data] Unexpected error: {e}")
+        raise
+
+    # Process candle data
     records = []
     for candle in r.response["candles"]:
         record = {
             "time": candle["time"],
             "volume": candle["volume"],
-            "open": candle["mid"]["o"],
-            "high": candle["mid"]["h"],
-            "low": candle["mid"]["l"],
-            "close": candle["mid"]["c"],
-            "instrument": instrument,
-            "granularity": granularity
+            "open": float(candle["mid"]["o"]),
+            "high": float(candle["mid"]["h"]),
+            "low": float(candle["mid"]["l"]),
+            "close": float(candle["mid"]["c"]),
+            "instrument": std_instrument,
+            "granularity": std_granularity
         }
         records.append(record)
 
+    print(f"[load_historical_data] Processed {len(records)} candles")
     df = pd.DataFrame(records)
     df["time"] = pd.to_datetime(df["time"])
     df = calculate_indicators(df)
-    save_to_csv(df, instrument, granularity)
+    save_to_csv(df, std_instrument, std_granularity)
     return df
 
 def calculate_indicators(df):
@@ -411,24 +414,6 @@ def save_to_csv(df, instrument, granularity):
         filename = f"{INDICATORS_DIRECTORY}/{instrument}_{indicator}.csv"
         indicator_df.to_csv(filename, index=False)
     print("[save_to_csv] Data and indicators saved to CSV.")
-
-def generate_plot(df, strategy_name):
-    """Generate and save a plot of the backtest results"""
-    plt.figure(figsize=(14, 7))
-    plt.plot(df['time'], df['close'], label='Close Price')
-    plt.plot(df['time'], df['SMA_short'], label='SMA Short')
-    plt.plot(df['time'], df['SMA_long'], label='SMA Long')
-    plt.fill_between(df['time'], df['RSI'], 30, where=(df['RSI'] < 30), facecolor='red', alpha=0.5, label='RSI < 30')
-    plt.fill_between(df['time'], df['RSI'], 70, where=(df['RSI'] > 70), facecolor='green', alpha=0.5, label='RSI > 70')
-    plt.title(f'Backtest Results for {strategy_name}')
-    plt.xlabel('Time')
-    plt.ylabel('Price')
-    plt.legend()
-    plt.grid(True)
-    plot_filename = f'static/plots/{strategy_name.replace(" ", "_")}.png'
-    plt.savefig(plot_filename)
-    plt.close()
-    return plot_filename
 
 # Initialize tool registry after function definitions
 tool_registry = ToolRegistry()
@@ -488,30 +473,6 @@ def query():
     print(f"[query] Processing message: {user_message}")
 
     try:
-        # Detect intent using endpoint_phrases
-        intent = detect_intent(user_message)
-        
-        if intent == "create_trading_strategy":
-            # Extract strategy details from user message
-            strategy_type = "custom"  # Default to custom strategy type
-            timeframe = "H1"  # Default timeframe
-            currency_pair = "USD_CAD"  # Default currency pair
-
-            # Execute create trading strategy with parameters
-            tool_response = tool_registry.create_trading_strategy(
-                strategy_type=strategy_type,
-                timeframe=timeframe,
-                currency_pair=currency_pair
-            )
-
-            # Get final AI response with tool data
-            final_response = get_ai_response(user_message, tool_response)
-            
-            # Save conversation
-            save_conversation_to_db(user_message, final_response)
-            
-            return jsonify({"response": final_response, "data": tool_response})
-
         # Get initial AI response to identify needed tool
         response = get_ai_response(user_message)
         
@@ -531,16 +492,13 @@ def query():
             tool = tool_registry.get_tool(tool_name)
             
             if tool:
-                if tool_name == "create_trading_strategy":
-                    # Extract strategy details from user message
-                    strategy_type = params.get('strategy_type', 'trend_following')
-                    timeframe = params.get('timeframe', 'H1')
-                    currency_pair = params.get('currency_pair', 'USD_CAD')
-                    # Execute create trading strategy with parameters
+                if tool_name == "create_order":
+                    # Extract order details from user message
+                    order_data = extract_order_details(user_message)
+                    # Execute create order with parameters
                     tool_response = tool.function(
-                        strategy_type=strategy_type,
-                        timeframe=timeframe,
-                        currency_pair=currency_pair
+                        account_id=params.get('account_id', ACCOUNT_ID),
+                        order_data=order_data
                     )
                 else:
                     # Execute other tools
@@ -655,7 +613,7 @@ def search_strategies():
     print(f"[search_strategies] Found {len(result)} strategies matching search term.")
     return jsonify(result)
 
-@app.route('/backtest_strategy', methods=['POST'])
+@app.route('/api/v1/backtest_strategy', methods=['POST'])
 def backtest_strategy():
     """Enhanced backtest route with database integration and detailed logging"""
     print("[backtest_strategy] Received new backtest request")
@@ -680,10 +638,6 @@ def backtest_strategy():
         backtest_results = globals_dict.get("backtestResults", {})
         backtest_results_str = "\n".join(f"{k}: {v}" for k, v in backtest_results.items())
         print(f"[backtest_strategy] Strategy execution completed. Results:\n{backtest_results_str}")
-
-        # Generate plot
-        plot_filename = generate_plot(df, data['strategyName'])
-        print(f"[backtest_strategy] Plot generated: {plot_filename}")
 
         # Get AI analysis
         analysis_prompt = f"""Analyze this trading strategy:
@@ -721,7 +675,6 @@ def backtest_strategy():
             "strategy_id": strategy.id,
             "backtestResults": backtest_results_str,
             "analysis": analysis,
-            "plotUrl": plot_filename,
             "error": None
         })
 
@@ -1003,76 +956,6 @@ def store_conversation():
             'success': False,
             'error': str(e),
             'traceback': error_trace
-        }), 500
-
-def load_live_data(instrument, granularity, count):
-    """Load live data from OANDA for the specified instrument and granularity"""
-    params = {"granularity": granularity, "count": count}
-    r = InstrumentsCandles(instrument=instrument, params=params)
-    api.request(r)
-
-    records = []
-    for candle in r.response["candles"]:
-        record = {
-            "time": candle["time"],
-            "volume": candle["volume"],
-            "open": candle["mid"]["o"],
-            "high": candle["mid"]["h"],
-            "low": candle["mid"]["l"],
-            "close": candle["mid"]["c"],
-            "instrument": instrument,
-            "granularity": granularity
-        }
-        records.append(record)
-
-    df = pd.DataFrame(records)
-    df["time"] = pd.to_datetime(df["time"])
-    df = calculate_indicators(df)
-    return df
-
-@app.route('/api/v1/live_data', methods=['GET'])
-def get_live_data():
-    """Get live data from OANDA for the specified instrument and granularity"""
-    try:
-        instrument = request.args.get('instrument')
-        granularity = request.args.get('granularity')
-        count = request.args.get('count', 100)
-        
-        df = load_live_data(instrument, granularity, count)
-        return jsonify(df.to_dict('records'))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/execute_strategy', methods=['POST'])
-def execute_strategy():
-    """Execute a trading strategy using live data from OANDA"""
-    try:
-        data = request.get_json()
-        instrument = data['instrument']
-        granularity = data['granularity']
-        count = data['count']
-        strategy_code = data['strategy_code']
-        
-        # Load live data
-        df = load_live_data(instrument, granularity, count)
-        
-        # Execute strategy code
-        globals_dict = {"df": df}
-        exec(strategy_code, globals_dict)
-
-        strategy_results = globals_dict.get("strategyResults", {})
-        strategy_results_str = "\n".join(f"{k}: {v}" for k, v in strategy_results.items())
-        
-        return jsonify({
-            "strategyResults": strategy_results_str,
-            "error": None
-        })
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        return jsonify({
-            "error": str(e),
-            "traceback": error_trace,
-            "strategyResults": None
         }), 500
 
 if __name__ == '__main__':
