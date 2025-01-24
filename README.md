@@ -96,7 +96,7 @@ We ask that everyone consider donating to support our efforts as we continue to 
 
 ## License
 
-TradingPal is licensed under the MIT License. See the 
+TradingPal is licensed under the AGPL-3.0 license License[AGPL-3.0 license License](LICENSE). See the 
 
 LICENSE
 
