@@ -40,7 +40,7 @@ class AccountManager {
         this.updateAccountDetails();
         
         // Update every minute
-        setInterval(() => this.updateAccountDetails(), 60000);
+        setInterval(() => this.updateAccountDetails(), 600000);
     }
 }
 

@@ -1,105 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
-    <style>
-        /* Styles go here */
-        body {
-            background-color: #282828;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingPal - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'trading-dark': '#141414',
+                        'trading-medium': '#272727',
+                        'trading-light': '#353535',
+                        'trading-accent': '#4e69a2',
+                        'trading-hover': '#3b528b'
+                    }
+                }
+            }
         }
-
-        .login-form {
-            background-color: #3c3c3c;
-            border-radius: 10px;
-            padding: 20px;
-            width: 300px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .login-form h2 {
-            margin: 0 0 20px 0;
-        }
-
-        .login-form label {
-            margin: 5px 0;
-        }
-
-        .login-form input {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .login-form button {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background-color: #ff6347;
-            color: #fff;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <form class="login-form" onsubmit="submitForm(event)">
-        <h2>Login</h2>
-        <label for="username">Username</label>
-        <input type="text" id="username" required>
-        <label for="password">Password</label>
-        <input type="password" id="password" required>
-        <button type="submit">Login</button>
-    </form>
-
-    <!-- Existing HTML and form -->
-
-<script>
-
-    async function submitForm(event) {
-
-        event.preventDefault();
-
-        // Get login values  
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        console.log("Username:", username);
-        console.log("Password:", password);
-
-        const response = await fetch('/login', {
-     
-        
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            username: username, 
-            password: password
-        })
-        });
-
-        console.log("Response:", response);
-
-        const data = await response.json();
-
-        if(data.message === 'Login successful'){
-        window.location.href = '/main.html'; 
-        } else {
-        // Show error 
-        console.log("Error:", data.message);
-        }
-
-    }
     </script>
-</body>
-</html>
+</head>
+<body class="bg-trading-dark text-white min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-8 bg-trading-medium rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-6 text-center">Login to TradingPal</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="bg-red-500 text-white p-3 rounded mb-4">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('login') }}" class="space-y-6">
+            <div>
+                <label class="block mb-2">Username or Email</label>
+                <input type="text" name="username" required 
+                    class="w-full p-3 bg-trading-dark rounded focus:outline-none focus:ring-2 focus:ring-trading-accent">
+            </div>
+            
+            <div>
+                <label class="block mb-2">Password</label>
+                <input type="password" name="password" required 

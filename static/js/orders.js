@@ -99,6 +99,15 @@ class OrderManager {
             }
         }
 
+        // Validate required fields
+        const requiredFields = ['units', 'instrument', 'type'];
+        for (const field of requiredFields) {
+            if (!orderData.order[field]) {
+                window.chatManager.addMessage(`Error: Missing required field ${field}`, 'assistant');
+                return;
+            }
+        }
+
         try {
             const response = await axios.post('/api/v1/create_order', orderData);
             const assistantResponse = response.data.response;
