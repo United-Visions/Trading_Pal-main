@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingPal 1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'trading-dark': '#141414',
+                        'trading-medium': '#272727',
+                        'trading-light': '#353535',
+                        'trading-accent': '#4e69a2',
+                        'trading-hover': '#3b528b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-trading-dark text-white min-h-screen">
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full bg-trading-dark border-b border-trading-medium z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <button id="menu-toggle" class="lg:hidden text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold">TradingPal 1.0</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="backtest-btn" class="px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
+                        Backtest
+                    </button>
+                    <button id="social-btn" class="px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
+                        Social
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-trading-dark border-r border-trading-medium transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-40">
+        <div class="flex flex-col h-full p-4">
+            <div class="flex-none">
+                <h2 class="text-lg font-semibold mb-4">Trading Assistant</h2>
+                <button id="new-chat-btn" class="w-full px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors mb-4"></button>
+                    New Chat
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-y-auto mb-4">
+                <div id="conversation-history" class="space-y-2">
+                    <!-- Conversation history will be added here -->
+                </div>
+            </div>
+
+            <div class="flex-none p-4 bg-trading-medium rounded-lg">
+                <h3 class="font-semibold mb-2">Account Details</h3>
+                <div class="space-y-2 text-sm">
+                    <p id="user-balance">Balance: --</p>
+                    <p id="user-leverage">Leverage: --</p>
+                    <p id="user-open-positions">Open Positions: --</p>
+                    <p id="user-open-trades">Open Trades: --</p>
+                    <p id="user-available-margin">Available Margin: --</p>
+                    <p id="user-pl">Profit/Loss: --</p>
+                </div>
+                <button class="w-full mt-4 px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
+                    Upgrade Account
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:ml-64 pt-16 min-h-screen">
+        <div class="container mx-auto px-4 py-6">
+            <!-- Chat Container -->
+            <div class="flex flex-col h-[calc(100vh-8rem)]">
+                <div id="chat-history" class="flex-grow overflow-y-auto mb-4 space-y-4 p-4">
+                    <!-- Chat messages will be added here -->
+                </div>
+
+                <!-- Chat Input -->
+                <div class="flex-none p-4 bg-trading-medium rounded-lg">
+                    <form id="chat-form" class="flex space-x-4">
+                        <textarea id="user-input" class="flex-grow p-3 bg-trading-dark rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-trading-accent" placeholder="Type your message here..." rows="2"></textarea>
+                        <button type="submit" class="px-6 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors flex-none">
+                            Send
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Order Form (hidden by default) -->
+                <form id="order-parameters-form" class="hidden flex-none p-4 bg-trading-medium rounded-lg">
+                    <!-- Order form fields will be added here -->
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+    </div>
+
+    <!-- Load JavaScript files -->
+    <script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/orders.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/account.js') }}"></script>
+</body>
+</html>

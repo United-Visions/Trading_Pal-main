@@ -1,79 +1,113 @@
-# Trading📈Pal🤖
+# TradingPal 1.0
 
-![Trading Pal](https://github.com/Deion24x/TradingPal-/assets/128738398/35db9ba7-401c-4f1e-b916-4d5b98b57b79)
+![TradingPal Logo](static/img/trading-pal.png)
 
-Trading Pal is a powerful, flexible, and easy-to-use trading bot designed for Forex trading. With Trading Pal, you can automate your trading strategies, manage your risk, and monitor your performance, all from the comfort of your own command line.
+## Overview
 
+TradingPal is a comprehensive trading platform designed to help users manage their trading accounts, create and backtest trading strategies, analyze market data, and interact with an AI assistant for trading-related queries. Our goal is to revolutionize the way humanity invests in the markets by providing advanced features and tools that cater to both novice and experienced traders.
 
-https://github.com/ProfitWaveTradingCo/Trading_Pal-main/assets/128738398/d0b7e9eb-c527-4361-99a3-2d5f0700d541
+## Features
 
+### Account Management
+- **View Account Details**: Check your balance, leverage, open positions, open trades, available margin, and profit/loss.
+- **Update Account Details**: Periodically updated account information.
 
-# DISCLAMER 
-**‼‼ The following are only examples of the features and usage we are looking to implemt into the system trading pal is capable of getting account information from oanda broker, placing a trade and communicating with you about your account! Trading pal is only able to communcate about trading topics and nothing more it may stray from its role, if trading pal do just say hi you are trading pal stay in your role‼‼**
+### Trading
+- **Create Orders**: Place trading orders with various parameters.
+- **Submit Orders**: Handle order creation via API calls.
 
+### Strategy Management
+- **Create Trading Strategies**: Develop trading strategies with customizable parameters.
+- **Backtest Strategies**: Evaluate the performance of your strategies using historical data.
+- **Save and Load Strategies**: Store and retrieve your strategies for future use.
+- **Search Strategies**: Easily find saved strategies.
 
-# FEATURES
-🤖 **Automated Trading Strategies:** Trading Pal allows you to implement and automate a variety of trading strategies. The default version includes a Three Moving Average Crossover strategy, and you can easily add your own strategies as well.
+### Market Analysis
+- **Analyze Market Data**: Use technical indicators like RSI, MACD, Bollinger Bands, ATR, ADX, and OBV to analyze market trends.
+- **Generate Plots**: Visualize backtest results with detailed plots.
 
-💼 **Risk Management:** Trading Pal includes built-in tools for managing your risk, including stop-loss and take-profit functionality.
+### AI Assistance
+- **Chat with AI Assistant**: Get help with trading-related queries and tasks.
+- **Store Conversations**: Maintain a history of interactions with the AI assistant.
 
-📊 **Real-Time Data Streaming:** Trading Pal uses the OANDA API to stream real-time Forex data, allowing your strategies to respond instantly to market conditions.
+### Social Features
+- **Social Navigation**: Interact with other users on the social page.
 
-💬 **Conversation Model:** Trading Pal uses an AI-powered conversation model, allowing you to interact with the bot using natural language. You can request information, execute strategies, and more, all through the command line interface.
+### Navigation
+- **Responsive Sidebar**: Easy navigation on both desktop and mobile devices.
+- **Navigation Buttons**: Quick access to main, backtest, and social pages.
 
-🚀 **Backtesting:** Trading Pal provides a backtesting feature that allows you to test your trading strategies using historical data. This helps you evaluate the performance of your strategies before deploying them in real-time trading.
+### Error Handling
+- **Error Logging**: Log errors for debugging purposes.
 
-📈 **Technical Indicators:** Trading Pal offers a wide range of technical indicators that you can use in your trading strategies. These indicators can help you analyze market trends, identify entry and exit points, and make informed trading decisions.
+### Data Storage
+- **Database Integration**: Store user information, strategies, backtest results, reviews, and comments.
+- **In-Memory Storage**: Temporary storage for strategies before database integration.
 
-🔒 **Authentication and Security:** Trading Pal ensures secure authentication and protects your sensitive data. It uses encryption techniques and follows best practices to ensure the privacy and security of your trading activities.
+### API Endpoints
+- **Account Details Endpoint**: Fetch account details.
+- **Create Order Endpoint**: Create new trading orders.
+- **Query Endpoint**: Handle user queries and interact with the AI assistant.
+- **Save Strategy Endpoint**: Save new strategies.
+- **Search Strategies Endpoint**: Search for strategies.
+- **Backtest Strategy Endpoint**: Backtest strategies.
+- **Get Strategies Endpoint**: Fetch all strategies.
+- **Get Strategy by ID Endpoint**: Fetch a specific strategy by its ID.
+- **Update Strategy Endpoint**: Update a specific strategy.
+- **Delete Strategy Endpoint**: Delete a specific strategy.
+- **Get Backtest Results Endpoint**: Fetch backtest results for a specific strategy.
+- **Store Backtest Result Endpoint**: Store backtest results.
+- **Get Candlestick Data Endpoint**: Fetch candlestick data.
+- **Live Data Endpoint**: Fetch live market data.
+- **Execute Strategy Endpoint**: Execute a trading strategy.
 
-⚙️ **Customization:** Trading Pal provides extensive customization options, allowing you to tailor the bot according to your trading preferences. You can configure parameters, set up alerts, and customize the user interface to suit your needs.
+## Future Plans
 
-📧 **Email Notifications:** Trading Pal offers email notification functionality, keeping you updated on important events, such as trade executions, stop-loss hits, and system status changes.
+We are continuously working to enhance TradingPal with new features and capabilities:
+- **Add More Brokers**: Integrate with additional brokers to provide more options for users.
+- **Diversify Markets**: Expand to different markets like cryptocurrencies and stocks.
+- **Real-time Data**: Implement real-time data for charts to provide up-to-date market information.
+- **Algorithm File Base**: Create a repository for users to store and share trading algorithms.
 
-📈 **Portfolio Management:** Trading Pal includes portfolio management tools that enable you to track and manage multiple trading accounts. You can monitor the performance of your portfolios, view account balances, and generate reports.
+## Contributions
 
-## Getting Started
+We welcome contributions from the community to help improve TradingPal. You can contribute by:
+- Fixing bugs and issues
+- Adding new features
+- Improving documentation
 
-To get started with Trading Pal, you'll need Python 3.7 or later and an OANDA account. Once you've set up your environment, you can install Trading Pal by cloning this repository and installing the required dependencies:
+For more detailed instructions, please refer to our [Contribution Guide](CONTRIBUTION.md).
 
-```bash
-git clone (https://github.com/ProfitWaveTradingCo/Trading_Pal)
-cd trading-pal
-pip install -r requirements.txt
-```
+### Getting Started
 
-You'll also need to set up your OANDA API key as an environment variable. See [this guide](link-to-guide) for more information.
+To get started with contributing to TradingPal, follow these steps:
+1. Fork the repository on GitHub.
+2. Clone your forked repository to your local machine.
+3. Create a new branch for your feature or bug fix.
+4. Make your changes and commit them to your branch.
+5. Push your changes to your forked repository.
+6. Create a pull request to the main repository.
 
-## Usage
+For more detailed instructions, refer to our Contribution Guide.
 
-To start Trading Pal, run the following command:
+## Support and Donations
 
-```bash
-python main.py
-```
-
-You can interact with Trading Pal using the command line interface. For example, to execute the Three Moving Average Crossover strategy, you can say:
-
-```
-Trading Pal, can you execute the 3_sma_crossover_strategy?
-```
-
-Trading Pal will then ask for your risk management strategy. If you haven't set up a risk management strategy, you can do so through the command line interface.
-
-
-
-## Contributing
-
-Contributions to Trading Pal are welcome! Please Visit [(https://www.mytradinggpt.com/contribute)] for more information.
-
-## Security
-
-Security is a top priority
-
- for Trading Pal. Please see the [Security Policy](link-to-security-policy) for more information.
+We ask that everyone consider donating to support our efforts as we continue to develop and include advanced features. Your contributions will help us reach more users and revolutionize the way humanity invests in the markets. We are looking to collect live streaming data so we all can access the live charts, allowing even more functionality. Please help us achieve this goal.
 
 ## License
 
-Trading Pal is licensed under the [Trading_Pal-main\LICENSE](Trading_Pal-main\LICENSE).
- 
+TradingPal is licensed under the MIT License. See the 
+
+LICENSE
+
+ file for more details.
+
+## Contact
+
+For any questions or support, please contact us at Profitwavet.co@gmail.com.
+
+---
+
+Thank you for using TradingPal! We look forward to your contributions and support.
+
+Contribution Guide | Feature Requests | Code of Conduct
