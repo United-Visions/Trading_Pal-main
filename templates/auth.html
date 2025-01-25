@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingPal - Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'trading-dark': '#141414',
+                        'trading-medium': '#272727',
+                        'trading-light': '#353535',
+                        'trading-accent': '#4e69a2',
+                        'trading-hover': '#3b528b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .form-hidden {
+            display: none;
+        }
+        body {
+            background-color: #141414;
+        }
+        input {
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-trading-dark text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto bg-trading-medium rounded-lg p-8 shadow-lg border border-trading-light">
+            <h1 class="text-2xl font-bold text-center mb-8 text-white">Welcome to TradingPal</h1>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block mb-2 text-white">Email</label>
+                    <input type="email" id="loginEmail" required
+                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
+                </div>
+                <div>
+                    <label for="loginPassword" class="block mb-2 text-white">Password</label>
+                    <input type="password" id="loginPassword" required
+                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
+                </div>
+                <button type="submit" 
+                        class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors text-white">
+                    Login
+                </button>
+                <p class="text-center text-white">
+                    Don't have an account? 
+                    <a href="#" id="showRegister" class="text-trading-accent hover:text-trading-hover">Register</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="space-y-4 form-hidden">
+                <div>
+                    <label for="registerEmail" class="block mb-2 text-white">Email</label>
+                    <input type="email" id="registerEmail" required
+                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
+                </div>
+                <div>
+                    <label for="registerUsername" class="block mb-2 text-white">Username</label>
+                    <input type="text" id="registerUsername" required
+                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
+                </div>
+                <div>
+                    <label for="registerPassword" class="block mb-2 text-white">Password</label>
+                    <input type="password" id="registerPassword" required
+                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
+                </div>
+                <button type="submit" 
+                        class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors text-white">
+                    Register
+                </button>
+                <p class="text-center text-white">
+                    Already have an account? 
+                    <a href="#" id="showLogin" class="text-trading-accent hover:text-trading-hover">Login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('showRegister').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.add('form-hidden');
+            document.getElementById('registerForm').classList.remove('form-hidden');
+        });
+
+        document.getElementById('showLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('registerForm').classList.add('form-hidden');
+            document.getElementById('loginForm').classList.remove('form-hidden');
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await axios.post('/auth/login', {
+                    email: document.getElementById('loginEmail').value,
+                    password: document.getElementById('loginPassword').value
+                });
+                window.location.href = response.data.redirect;
+            } catch (error) {
+                alert(error.response?.data?.error || 'Login failed');
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await axios.post('/auth/register', {
+                    email: document.getElementById('registerEmail').value,
+                    username: document.getElementById('registerUsername').value,
+                    password: document.getElementById('registerPassword').value
+                });
+                window.location.href = response.data.redirect;
+            } catch (error) {
+                alert(error.response?.data?.error || 'Registration failed');
+            }
+        });
+    </script>
+</body>
+</html>

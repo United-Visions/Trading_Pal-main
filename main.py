@@ -1,20 +1,25 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
 import google.generativeai as genai
 import configparser
 import traceback
 import os
 import json
-import pandas as pd
-from models import db, User, Conversation, Strategy, BacktestResult, Review, Comment
+from models import BacktestResult, Strategy, db, User, Conversation, Review, Comment
 from datetime import datetime
 import requests
 from oandapyV20 import API
 from oandapyV20.exceptions import V20Error
 from oandapyV20.endpoints.instruments import InstrumentsCandles
 from indicators import calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_atr, calculate_adx, calculate_obv
-from words import endpoint_phrases, trading_keywords
 from tools import ToolRegistry
+from words import endpoint_phrases, trading_keywords
+from oanda_broker import OandaBroker
+from trading import load_historical_data, trading_bp
+from broker_factory import BrokerFactory
+from flask_login import login_required, current_user, LoginManager
+from auth import auth_bp
+from user_config import user_config_bp
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -22,11 +27,19 @@ config.read('config.ini')
 # Initialize app configurations
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
-
-# Database configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')  # Change in production
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tradingpal.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
 db.init_app(app)
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login_page'  # Update this line
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # API and model configurations
 genai.configure(api_key=config.get('API_KEYS', 'GEMINI_API_KEY'))
@@ -35,51 +48,27 @@ BASE_URL = "https://api-fxpractice.oanda.com"
 ACCOUNT_ID = config.get('API_KEYS', 'OANDA_ACCOUNT_ID', fallback="101-001-25836")
 api = API(access_token=OANDA_API_KEY)
 
-# Headers setup
-headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {OANDA_API_KEY}",
-    "Accept-Datetime-Format": "RFC3339"
-}
+# Replace broker initialization with broker factory
+broker_factory = BrokerFactory()
 
-database = []  # In-memory storage for strategies before db integration
 INDICATORS_DIRECTORY = "indicators_directory"
+
+# Initialize strategy database
+strategy_database = []
+
 # Function definitions
-def get_account_details():
-    """Get account details with enhanced error handling"""
-    try:
-        print(f"[get_account_details] Requesting account details for {ACCOUNT_ID}")
-        url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/summary"  # Changed to summary endpoint
-        print(f"[get_account_details] Request URL: {url}")
-        
-        response = requests.get(url, headers=headers)
-        print(f"[get_account_details] Response status: {response.status_code}")
-        
-        if response.status_code != 200:
-            error_msg = f"Failed to get account details. Status: {response.status_code}, Response: {response.text}"
-            print(f"[get_account_details] ERROR: {error_msg}")
-            return {"error": error_msg}
-            
-        data = response.json()
-        print("[get_account_details] Successfully retrieved account data")
-        return data
-        
-    except requests.exceptions.RequestException as err:
-        error_msg = f"Network error getting account details: {str(err)}"
-        print(f"[get_account_details] ERROR: {error_msg}")
-        return {"error": error_msg}
-    except Exception as err:
-        error_msg = f"Unexpected error getting account details: {str(err)}"
-        print(f"[get_account_details] ERROR: {error_msg}")
-        return {"error": error_msg}
+def get_account_details(broker_name=None):
+    """Get account details from specified or available broker"""
+    if broker_name and broker_factory.is_broker_available(broker_name):
+        broker, _ = broker_factory.get_broker()
+    else:
+        broker, broker_name = broker_factory.get_broker()
+    return broker.get_account_details()
 
 def create_order(account_id, order_data):
     try:
-        url = f"{BASE_URL}/v3/accounts/{account_id}/orders"
-        response = requests.post(url, headers=headers, json=order_data)
-        response.raise_for_status()
-        order_response = response.json()
-        
+        broker, broker_name = get_broker_for_request()
+        order_response = broker.create_order(order_data)
         message = f"Successfully created order. Response from broker: {order_response}"
         messages = [
             {"role": "user", "content": "create order"},
@@ -87,7 +76,7 @@ def create_order(account_id, order_data):
         ]
         assistant_response = get_gemini_response(messages)
         return assistant_response, order_response
-    except requests.exceptions.HTTPError as err:
+    except Exception as err:
         error_message = f"Failed to create order. Error: {err}"
         messages = [
             {"role": "user", "content": "create order"},
@@ -107,61 +96,72 @@ def detect_intent(user_message):
             
     return None
 
+def get_broker_for_request(user_message=None):
+    """Get appropriate broker based on user context and message"""
+    try:
+        if not current_user.is_authenticated:
+            # Use default broker config if no user is logged in
+            broker, broker_name = broker_factory.get_broker(message=user_message)
+        else:
+            # Get user's trading preferences
+            user_prefs = current_user.trading_preferences
+            broker, broker_name = broker_factory.get_broker(
+                message=user_message,
+                user_prefs=user_prefs
+            )
+            
+        if not broker:
+            raise ValueError("No available brokers configured")
+            
+        # Verify broker connection
+        if not broker_factory.check_broker_status(broker_name):
+            raise ValueError(f"Broker {broker_name} is not connected")
+            
+        return broker, broker_name
+        
+    except Exception as e:
+        print(f"[get_broker_for_request] ERROR: {str(e)}")
+        raise
+
 def execute_endpoint_action(intent, user_message=None):
     """Execute the appropriate action and get AI response based on the data"""
     try:
-        response_data = None
+        broker, broker_name = get_broker_for_request(user_message)
         
+        if not broker_factory.check_broker_status(broker_name):
+            return jsonify({
+                "error": f"Broker {broker_name} is not connected. Please check your configuration."
+            }), 503
+
+        response_data = None
         if intent == "get_accounts":
-            url = f"{BASE_URL}/v3/accounts"
-            response = requests.get(url, headers=headers)
-            response_data = response.json()
-            
+            response_data = broker.get_account_details()
         elif intent == "get_account_details":
-            response_data = get_account_details()
-            
+            response_data = broker.get_account_details()
         elif intent == "create_order":
-            return jsonify({"action": "create_order"})
-            
+            return jsonify({"action": "create_order", "broker": broker_name})
         elif intent == "get_candlestick_data":
             instrument = extract_instrument(user_message)
-            params = {"count": 100, "granularity": "M1"}
-            r = InstrumentsCandles(instrument=instrument, params=params)
-            api.request(r)
-            response_data = r.response
-            
-        elif intent == "get_order_book":
-            instrument = extract_instrument(user_message)
-            url = f"{BASE_URL}/v3/instruments/{instrument}/orderBook"
-            response = requests.get(url, headers=headers)
-            response_data = response.json()
-            
-        elif intent == "get_position_book":
-            instrument = extract_instrument(user_message)
-            url = f"{BASE_URL}/v3/instruments/{instrument}/positionBook"
-            response = requests.get(url, headers=headers)
-            response_data = response.json()
-            
+            response_data = broker.get_candlestick_data(instrument)
         elif intent == "get_trades":
-            url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/trades"
-            response = requests.get(url, headers=headers)
-            response_data = response.json()
-            
+            response_data = broker.get_trades()
         elif intent == "get_positions":
-            url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/positions"
-            response = requests.get(url, headers=headers)
-            response_data = response.json()
-            
+            response_data = broker.get_positions()
         elif intent == "close_position":
             instrument = extract_instrument(user_message)
-            url = f"{BASE_URL}/v3/accounts/{ACCOUNT_ID}/positions/{instrument}/close"
-            response = requests.put(url, headers=headers)
-            response_data = response.json()
+            response_data = broker.close_position(instrument)
 
         if response_data:
-            # Format prompt for the AI with both intent and data
+            # Add enhanced broker information
+            response_data.update({
+                "broker_used": broker_name,
+                "broker_status": broker_factory.get_broker_status(broker_name),
+                "available_brokers": broker_factory.get_available_brokers()
+            })
+            
             prompt = f"""
             User Intent: {intent}
+            Broker Used: {broker_name}
             User Message: {user_message}
             API Response Data: {json.dumps(response_data, indent=2)}
             
@@ -295,126 +295,6 @@ def extract_instrument(message):
             return pair
     return None
 
-def standardize_currency_pair(pair):
-    """Standardize currency pair format for OANDA API"""
-    print(f"[standardize_currency_pair] Input pair: {pair}")
-    
-    # Remove any spaces and convert to uppercase
-    pair = pair.strip().upper().replace(" ", "")
-    
-    # Handle common separators
-    for sep in ['/', '_', '-', '.']:
-        if sep in pair:
-            parts = pair.split(sep)
-            if len(parts) == 2:
-                return f"{parts[0]}_{parts[1]}"
-    
-    # If no separator found but length is 6, assume it's a direct currency pair
-    if len(pair) == 6:
-        return f"{pair[:3]}_{pair[3:]}"
-        
-    print(f"[standardize_currency_pair] Could not standardize pair: {pair}")
-    return None
-
-def validate_timeframe(timeframe):
-    """Validate and standardize timeframe format"""
-    print(f"[validate_timeframe] Input timeframe: {timeframe}")
-    
-    # Map common timeframe formats to OANDA format
-    timeframe_map = {
-        '1h': 'H1', 'h1': 'H1', 'hour': 'H1', '1hour': 'H1',
-        '4h': 'H4', 'h4': 'H4',
-        '1d': 'D', 'd1': 'D', 'day': 'D', '1day': 'D',
-        '1m': 'M1', 'm1': 'M1', 'minute': 'M1',
-        '30m': 'M30', 'm30': 'M30'
-    }
-    
-    timeframe = timeframe.lower()
-    if timeframe in timeframe_map:
-        return timeframe_map[timeframe]
-    
-    print(f"[validate_timeframe] Invalid timeframe format: {timeframe}")
-    return None
-
-def load_historical_data(instrument, granularity, count):
-    """Load historical data with improved error handling and validation"""
-    print(f"[load_historical_data] Loading data for {instrument} with granularity {granularity} and count {count}")
-    
-    # Validate and standardize inputs
-    std_instrument = standardize_currency_pair(instrument)
-    if not std_instrument:
-        raise ValueError(f"Invalid currency pair format: {instrument}")
-    
-    std_granularity = validate_timeframe(granularity)
-    if not std_granularity:
-        raise ValueError(f"Invalid timeframe format: {granularity}")
-    
-    params = {"granularity": std_granularity, "count": count}
-    print(f"[load_historical_data] Requesting data for {std_instrument} with params {params}")
-    
-    r = InstrumentsCandles(instrument=std_instrument, params=params)
-    
-    try:
-        api.request(r)
-        print(f"[load_historical_data] Successfully loaded data for {std_instrument}")
-    except V20Error as e:
-        print(f"[load_historical_data] OANDA API Error: {e}")
-        raise ValueError(f"Failed to fetch data: {str(e)}")
-    except Exception as e:
-        print(f"[load_historical_data] Unexpected error: {e}")
-        raise
-
-    # Process candle data
-    records = []
-    for candle in r.response["candles"]:
-        record = {
-            "time": candle["time"],
-            "volume": candle["volume"],
-            "open": float(candle["mid"]["o"]),
-            "high": float(candle["mid"]["h"]),
-            "low": float(candle["mid"]["l"]),
-            "close": float(candle["mid"]["c"]),
-            "instrument": std_instrument,
-            "granularity": std_granularity
-        }
-        records.append(record)
-
-    print(f"[load_historical_data] Processed {len(records)} candles")
-    df = pd.DataFrame(records)
-    df["time"] = pd.to_datetime(df["time"])
-    df = calculate_indicators(df)
-    save_to_csv(df, std_instrument, std_granularity)
-    return df
-
-def calculate_indicators(df):
-    print("[calculate_indicators] Calculating indicators...")
-    numeric_cols = ["open", "high", "low", "close"]
-    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric)
-
-    df["RSI"] = calculate_rsi(df["close"], window=14)
-    df["MACD"], df["Signal_Line"], df["Histogram"] = calculate_macd(df["close"], window_fast=12, window_slow=26, window_signal=9)
-    df["BollingerBands_middle"], df["BollingerBands_std"] = calculate_bollinger_bands(df["close"], window=20)
-    df["ATR"] = calculate_atr(df["high"], df["low"], df["close"], window=14)
-    df["ADX"] = calculate_adx(df["high"], df["low"], df["close"], window=14)
-    df["OBV"] = calculate_obv(df["close"], df["volume"])
-
-    print("[calculate_indicators] Indicators calculated.")
-    return df
-
-def save_to_csv(df, instrument, granularity):
-    print(f"[save_to_csv] Saving historical data to CSV for {instrument} at {granularity} granularity.")
-    filename = f"{INDICATORS_DIRECTORY}/{instrument}_{granularity}.csv"
-    df.to_csv(filename, index=False)
-    
-    # Save individual indicators
-    indicators = ["RSI", "MACD", "Signal_Line", "Histogram", "BollingerBands_middle", "BollingerBands_std", "ATR",
-                 "ADX", "OBV"]
-    for indicator in indicators:
-        indicator_df = df[["time", indicator]]
-        filename = f"{INDICATORS_DIRECTORY}/{instrument}_{indicator}.csv"
-        indicator_df.to_csv(filename, index=False)
-    print("[save_to_csv] Data and indicators saved to CSV.")
-
 # Initialize tool registry after function definitions
 tool_registry = ToolRegistry()
 
@@ -446,7 +326,14 @@ model = genai.GenerativeModel(
 )
 
 @app.route('/')
-def index():
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for('main'))
+    return redirect(url_for('auth.login_page'))
+
+@app.route('/main')
+@login_required
+def main():
     return render_template('main.html')
 
 def get_gemini_response(messages):
@@ -526,81 +413,71 @@ def query():
         }), 500
 
 @app.route('/api/v1/create_order', methods=['POST'])
+@login_required
 def create_order_route():
-    print("Received a request to create an order.")
-    data = request.json
-    print(f"Received data: {data}")
-    order_data = data.get('order')
-    print(f"Order data: {order_data}")
-
-    required_fields = ['units', 'instrument', 'type']
-    if not all(field in order_data for field in required_fields):
-        print("Error: Required fields are missing.")
-        return jsonify({"error": "Required fields are missing"}), 400
-
-    order_data['units'] = int(order_data['units'])
-
-    # Add additional parameters
-    if order_data['type'] in ["LIMIT", "STOP"]:
-        order_data["price"] = data.get('price')
-
-    # Handle take profit
-    take_profit_price = data.get('take_profit')
-    if take_profit_price:
-        order_data["takeProfitOnFill"] = {
-            "price": take_profit_price,
-            "timeInForce": "GTC"
-        }
-
-    # Handle stop loss
-    stop_loss_price = data.get('stop_loss')
-    if stop_loss_price:
-        order_data["stopLossOnFill"] = {
-            "price": stop_loss_price,
-            "timeInForce": "GTC"
-        }
-
-    # Handle trailing stop
-    trailing_stop = data.get('trailing_stop_loss_distance')
-    if trailing_stop:
-        order_data["trailingStopLossOnFill"] = {
-            "distance": trailing_stop
-        }
-
-    # Handle guaranteed stop
-    guaranteed_stop = data.get('guaranteed_stop_loss_price')
-    if guaranteed_stop:
-        order_data["guaranteedStopLossOnFill"] = {
-            "price": guaranteed_stop,
-            "timeInForce": "GTC"
-        }
-
+    """Enhanced order creation with broker selection"""
     try:
-        # Save order parameters to CSV
-        df = pd.DataFrame([order_data])
-        df.to_csv('parameters.csv', mode='a', header=False)
-        print("Successfully written order data to CSV.")
-
+        data = request.json
+        
+        # Get appropriate broker using user preferences
+        broker, broker_name = get_broker_for_request(data.get('message'))
+        
+        # Process order based on broker type
+        processed_order = broker.process_order_request(data)
+        
         # Create the order
-        assistant_response, order_response = create_order(ACCOUNT_ID, {"order": order_data})
-        print("Order Created: ", order_response)
-        print(f"Assistant Response: {assistant_response}")
+        assistant_response, order_response = create_order(
+            account_id=broker.account_id,
+            order_data=processed_order
+        )
         
         return jsonify({
-            "response": assistant_response, 
-            "order_response": order_response
+            "response": assistant_response,
+            "order_response": order_response,
+            "broker_used": broker_name,
+            "broker_status": broker_factory.get_broker_status(broker_name)
         })
-
+        
     except Exception as e:
-        error_message = str(e)
-        print("Error: ", error_message)
-        return jsonify({"error": error_message}), 500
+        error_msg = str(e)
+        print(f"[create_order_route] ERROR: {error_msg}")
+        return jsonify({"error": error_msg}), 500
+
+@app.route('/api/v1/broker/status', methods=['GET'])
+@login_required
+def get_broker_status():
+    """Get status of all configured brokers"""
+    try:
+        available_brokers = broker_factory.get_available_brokers()
+        status = {
+            broker: broker_factory.get_broker_status(broker)
+            for broker in available_brokers
+        }
+        
+        # Get user's trading preferences
+        user_prefs = current_user.trading_preferences
+        preferred_markets = user_prefs.preferred_markets if user_prefs else []
+        
+        return jsonify({
+            "active_brokers": available_brokers,
+            "status": status,
+            "preferred_markets": preferred_markets,
+            "default_broker": next(iter(available_brokers), None)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.before_request
+def initialize_user_brokers():
+    if current_user.is_authenticated and not broker_factory.brokers:
+        broker_factory.initialize_user_brokers(current_user)
 
 @app.route('/save_strategy', methods=['POST'])
 def save_strategy():
     data = request.get_json()
     print(f"[save_strategy] Received data to save strategy: {data}")
-    database.append(data)
+    strategy_database.append(data)
     print("[save_strategy] Strategy saved successfully.")
     return jsonify(success=True)
 
@@ -609,7 +486,7 @@ def save_strategy():
 def search_strategies():
     search = request.get_json().get('search')
     print(f"[search_strategies] Searching strategies with term: {search}")
-    result = [s for s in database if search in s['strategyName'] or search in s['authorName']]
+    result = [s for s in strategy_database if search in s['strategyName'] or search in s['authorName']]
     print(f"[search_strategies] Found {len(result)} strategies matching search term.")
     return jsonify(result)
 
@@ -689,170 +566,31 @@ def backtest_strategy():
             "analysis": None
         }), 500
 
-@app.route('/api/v1/strategies', methods=['GET'])
-def get_strategies():
-    """Get all strategies from database"""
-    print("[get_strategies] Fetching all strategies")
-    try:
-        strategies = Strategy.query.all()
-        print(f"[get_strategies] Found {len(strategies)} strategies")
-        return jsonify([{
-            'id': s.id,
-            'name': s.name,
-            'description': s.description,
-            'currency_pair': s.currency_pair,
-            'time_frame': s.time_frame,
-            'user_id': s.user_id,
-            'algo_code': s.algo_code
-        } for s in strategies])
-    except Exception as e:
-        print(f"[get_strategies] ERROR: {str(e)}")
-        print(f"[get_strategies] Traceback:\n{traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/strategy/<int:strategy_id>', methods=['GET'])
-def get_strategy(strategy_id):
-    try:
-        strategy = Strategy.query.get_or_404(strategy_id)
-        return jsonify({
-            'id': strategy.id,
-            'name': strategy.name,
-            'description': strategy.description,
-            'algo_code': strategy.algo_code,
-            'currency_pair': strategy.currency_pair,
-            'time_frame': strategy.time_frame,
-            'user_id': strategy.user_id
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/strategy', methods=['POST'])
-def create_strategy():
-    try:
-        data = request.get_json()
-        strategy = Strategy(
-            name=data['name'],
-            description=data.get('description', ''),
-            algo_code=data['algo_code'],
-            currency_pair=data['currency_pair'],
-            time_frame=data['time_frame'],
-            user_id=data['user_id']
-        )
-        db.session.add(strategy)
-        db.session.commit()
-        return jsonify({
-            'message': 'Strategy created successfully',
-            'strategy_id': strategy.id
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/strategy/<int:strategy_id>', methods=['PUT'])
-def update_strategy(strategy_id):
-    try:
-        strategy = Strategy.query.get_or_404(strategy_id)
-        data = request.get_json()
-        
-        strategy.name = data.get('name', strategy.name)
-        strategy.description = data.get('description', strategy.description)
-        strategy.algo_code = data.get('algo_code', strategy.algo_code)
-        strategy.currency_pair = data.get('currency_pair', strategy.currency_pair)
-        strategy.time_frame = data.get('time_frame', strategy.time_frame)
-        
-        db.session.commit()
-        return jsonify({'message': 'Strategy updated successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/strategy/<int:strategy_id>', methods=['DELETE'])
-def delete_strategy(strategy_id):
-    try:
-        strategy = Strategy.query.get_or_404(strategy_id)
-        db.session.delete(strategy)
-        db.session.commit()
-        return jsonify({'message': 'Strategy deleted successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/backtest_results/<int:strategy_id>', methods=['GET'])
-def get_backtest_results(strategy_id):
-    try:
-        results = BacktestResult.query.filter_by(strategy_id=strategy_id).order_by(BacktestResult.created_at.desc()).all()
-        return jsonify([{
-            'id': r.id,
-            'results': r.results,
-            'analysis': r.analysis,
-            'created_at': r.created_at.isoformat()
-        } for r in results])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/store_backtest_result', methods=['POST'])
-def store_backtest_result():
-    try:
-        data = request.get_json()
-        result = BacktestResult(
-            strategy_id=data['strategy_id'],
-            results=data['results'],
-            analysis=data['analysis']
-        )
-        db.session.add(result)
-        db.session.commit()
-        return jsonify({'message': 'Backtest result stored successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/v1/candlestick_data', methods=['GET'])
-def get_candlestick_data():
-    try:
-        instrument = request.args.get('instrument')
-        granularity = request.args.get('granularity')
-        count = request.args.get('count', 100)
-        
-        df = load_historical_data(instrument, granularity, count)
-        return jsonify(df.to_dict('records'))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/backtest')
 def backtest_page():
     return render_template('backtest.html')
 
 @app.route('/api/v1/account_details', methods=['GET'])
+@login_required
 def account_details():
-    """Get account details endpoint with better error handling"""
+    """Get account details from selected broker"""
     try:
-        print("[account_details] Processing request")
-        details = get_account_details()
+        # Get broker based on user preferences
+        broker, broker_name = get_broker_for_request()
         
+        details = broker.get_account_details()
         if "error" in details:
-            print(f"[account_details] Returning error response: {details['error']}")
             return jsonify({"error": details["error"]}), 400
             
-        account = details.get("account", {})
+        # Add broker information to response
+        details["broker_used"] = broker_name
+        details["broker_status"] = broker_factory.get_broker_status(broker_name)
         
-        response = {
-            "account": {
-                "balance": account.get("balance", "0"),
-                "marginRate": account.get("marginRate", "0"),
-                "openPositionCount": account.get("openPositionCount", 0),
-                "openTradeCount": account.get("openTradeCount", 0),
-                "marginAvailable": account.get("marginAvailable", "0"),
-                "pl": account.get("pl", "0")
-            }
-        }
-        
-        print(f"[account_details] Returning successful response: {json.dumps(response, indent=2)}")
-        return jsonify(response)
+        return jsonify(details)
         
     except Exception as e:
-        error_msg = f"Failed to process account details: {str(e)}"
+        error_msg = f"Failed to get account details: {str(e)}"
         print(f"[account_details] ERROR: {error_msg}")
-        print(f"[account_details] Traceback:\n{traceback.format_exc()}")
         return jsonify({"error": error_msg}), 500
 
 # Error handlers
@@ -867,14 +605,15 @@ def internal_server_error(error):
 
 
 # Add these database helper functions after the configurations
-def save_conversation_to_db(user_message, assistant_response):
+def save_conversation_to_db(user_message, assistant_response, broker_name=None):
     """Save conversation to database with error logging"""
     print("[save_conversation_to_db] Saving new conversation")
     try:
         conversation = Conversation(
-            user_id=1,  # TODO: Replace with actual user ID from session
+            user_id=current_user.id if current_user.is_authenticated else 1,
             message=user_message,
             response=assistant_response,
+            broker_context=broker_name,
             timestamp=datetime.utcnow()
         )
         db.session.add(conversation)
@@ -961,4 +700,7 @@ def store_conversation():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(trading_bp)
+    app.register_blueprint(user_config_bp)  # Add this line
     app.run(port=5000, debug=True)
