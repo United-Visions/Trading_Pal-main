@@ -1,4 +1,4 @@
-from oanda_broker import OandaBroker 
+from oanda_broker import OandaBroker
 from alpaca_broker import AlpacaBroker
 import configparser
 from typing import Tuple, Optional
@@ -10,78 +10,125 @@ class BrokerFactory:
         self.config.read(config_path)
         self.brokers = {}
         self.broker_status = {}
-        
+        self.current_broker = None
+
     def initialize_user_brokers(self, user: User):
-        """Initialize brokers based on user's configurations"""
-        self.brokers = {}
-        
-        for broker_config in user.broker_configs:
-            if not broker_config.is_active:
-                continue
-                
-            if broker_config.broker_type == 'oanda':
-                self.brokers['oanda'] = OandaBroker(
-                    api_key=broker_config.api_key,
-                    account_id=broker_config.account_id,
-                    base_url="https://api-fxpractice.oanda.com"
-                )
-                
-            elif broker_config.broker_type == 'alpaca':
-                self.brokers['alpaca'] = AlpacaBroker(
-                    api_key=broker_config.api_key,
-                    secret_key=broker_config.api_secret,
-                    base_url="https://paper-api.alpaca.markets"
-                )
-            
-            self.broker_status[broker_config.broker_type] = 'connected'
-
-    def get_broker(self, message: Optional[str] = None, user_prefs = None) -> Tuple[object, str]:
-        """Get appropriate broker based on message content, user preferences and availability"""
-        if not self.brokers:
-            raise ValueError("No brokers initialized. Please configure broker credentials.")
-
-        if message:
-            message = message.lower()
-            
-            # Check user's preferred market types
-            if user_prefs and user_prefs.preferred_markets:
-                if 'forex' in user_prefs.preferred_markets and 'oanda' in self.brokers:
-                    return self.brokers['oanda'], 'oanda'
-                elif 'stocks' in user_prefs.preferred_markets and 'alpaca' in self.brokers:
-                    return self.brokers['alpaca'], 'alpaca'
-            
-            # Check message context
-            if any(term in message for term in ['forex', 'currency', 'oanda', 'eur/usd', 'gbp/usd']):
-                if 'oanda' in self.brokers:
-                    return self.brokers['oanda'], 'oanda'
-            elif any(term in message for term in ['stock', 'shares', 'alpaca', 'nasdaq', 'nyse']):
-                if 'alpaca' in self.brokers:
-                    return self.brokers['alpaca'], 'alpaca'
-
-        # Return first available broker
-        broker_name = next(iter(self.brokers))
-        return self.brokers[broker_name], broker_name
-
-    def check_broker_status(self, broker_name: str) -> bool:
-        """Check if broker is connected and working"""
-        if broker_name not in self.brokers:
-            return False
-            
+        """Initialize all active brokers for a user"""
         try:
-            # Test broker connection
-            broker = self.brokers[broker_name]
-            broker.get_account_details()
-            self.broker_status[broker_name] = 'connected'
-            return True
-        except Exception:
-            self.broker_status[broker_name] = 'disconnected'
+            configs = BrokerConfig.query.filter_by(
+                user_id=user.id,
+                is_active=True
+            ).all()
+            
+            for config in configs:
+                self.add_broker(
+                    broker_type=config.broker_type,
+                    api_key=config.api_key,
+                    api_secret=config.api_secret,
+                    account_id=config.account_id
+                )
+                
+            # Set first available broker as current
+            if self.brokers and not self.current_broker:
+                self.current_broker = next(iter(self.brokers.keys()))
+                
+            return len(self.brokers) > 0
+            
+        except Exception as e:
+            print(f"Error initializing brokers: {e}")
             return False
 
-    def get_available_brokers(self) -> list:
-        """Get list of available and connected brokers"""
-        return [name for name, broker in self.brokers.items() 
-                if self.check_broker_status(name)]
+    def add_broker(self, broker_type, api_key, api_secret=None, account_id=None):
+        """Add a broker instance to the factory with improved error handling"""
+        try:
+            if not api_key:
+                raise ValueError(f"API key is required for {broker_type}")
 
-    def get_broker_status(self, broker_name: str) -> str:
-        """Get current status of specific broker"""
-        return self.broker_status.get(broker_name, 'not_configured')
+            broker = None
+            if broker_type == 'oanda':
+                if not account_id:
+                    raise ValueError("Account ID is required for OANDA")
+                broker = OandaBroker(api_key=api_key, account_id=account_id)
+            
+            elif broker_type == 'alpaca':
+                if not api_secret:
+                    raise ValueError("API secret is required for Alpaca")
+                try:
+                    broker = AlpacaBroker(
+                        api_key=api_key,
+                        api_secret=api_secret,
+                        paper=True
+                    )
+                except Exception as e:
+                    raise ConnectionError(f"Failed to connect to Alpaca: {str(e)}")
+            else:
+                raise ValueError(f"Unsupported broker type: {broker_type}")
+
+            # Test connection before storing
+            if not broker or not broker.test_connection():
+                self.broker_status[broker_type] = "disconnected"
+                raise ConnectionError(f"Failed to connect to {broker_type}")
+
+            # Store broker if connection test passes
+            self.brokers[broker_type] = broker
+            self.broker_status[broker_type] = "connected"
+            return True
+
+        except Exception as e:
+            print(f"Error adding broker {broker_type}: {str(e)}")
+            self.broker_status[broker_type] = "error"
+            return False
+
+    def get_broker(self, broker_type=None):
+        """Get a specific broker or the current broker"""
+        try:
+            if not self.brokers:
+                raise ValueError("No brokers initialized. Please configure broker credentials.")
+                
+            if broker_type and broker_type in self.brokers:
+                return self.brokers[broker_type]
+                
+            if self.current_broker and self.current_broker in self.brokers:
+                return self.brokers[self.current_broker]
+                
+            # Default to first available broker
+            first_broker = next(iter(self.brokers.values()))
+            if first_broker:
+                return first_broker
+                
+            raise ValueError("No available brokers found")
+            
+        except Exception as e:
+            print(f"Error getting broker: {e}")
+            raise
+
+    def test_broker_connection(self, broker_type, api_key, api_secret=None, account_id=None):
+        """Test broker connection before saving credentials"""
+        try:
+            if broker_type == 'oanda':
+                broker = OandaBroker(api_key=api_key, account_id=account_id)
+            elif broker_type == 'alpaca':
+                broker = AlpacaBroker(api_key=api_key, api_secret=api_secret)
+            else:
+                return False
+                
+            return broker.test_connection()
+            
+        except Exception as e:
+            print(f"Connection test failed for {broker_type}: {e}")
+            return False
+
+    def is_broker_available(self, broker_type):
+        return broker_type in self.brokers
+
+    def get_available_brokers(self):
+        return list(self.brokers.keys())
+
+    def get_broker_status(self, broker_type):
+        if broker_type in self.brokers:
+            try:
+                broker = self.brokers[broker_type]
+                return "connected" if broker.test_connection() else "disconnected"
+            except:
+                return "disconnected"
+        return "not_configured"

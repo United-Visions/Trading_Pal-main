@@ -1,11 +1,11 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, session, url_for
 from flask_cors import CORS
 import google.generativeai as genai
 import configparser
 import traceback
 import os
 import json
-from models import BacktestResult, Strategy, db, User, Conversation, Review, Comment
+from models import BacktestResult, BrokerConfig, Strategy, db, User, Conversation, Review, Comment
 from datetime import datetime
 import requests
 from oandapyV20 import API
@@ -468,11 +468,32 @@ def get_broker_status():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+from flask import g
+
 @app.before_request
 def initialize_user_brokers():
-    if current_user.is_authenticated and not broker_factory.brokers:
-        broker_factory.initialize_user_brokers(current_user)
+    """Initialize broker factory before each request if user is authenticated"""
+    if current_user.is_authenticated:
+        # Store broker factory in Flask's g object to persist during request
+        if not hasattr(g, 'broker_factory'):
+            g.broker_factory = BrokerFactory()
+            
+        # Initialize brokers if not already done
+        if not g.broker_factory.brokers:
+            active_configs = BrokerConfig.query.filter_by(
+                user_id=current_user.id,
+                is_active=True
+            ).all()
+            
+            if active_configs:
+                g.broker_factory.initialize_user_brokers(current_user)
 
+@app.teardown_appcontext
+def teardown_broker_factory(exception):
+    """Clean up broker factory at end of request"""
+    broker_factory = g.pop('broker_factory', None)
+
+    
 @app.route('/save_strategy', methods=['POST'])
 def save_strategy():
     data = request.get_json()
@@ -575,23 +596,50 @@ def backtest_page():
 def account_details():
     """Get account details from selected broker"""
     try:
-        # Get broker based on user preferences
-        broker, broker_name = get_broker_for_request()
+        if not hasattr(g, 'broker_factory'):
+            g.broker_factory = BrokerFactory()
+            
+        # Initialize brokers from active configs
+        active_configs = BrokerConfig.query.filter_by(
+            user_id=current_user.id,
+            is_active=True
+        ).all()
         
+        broker_initialized = False
+        for config in active_configs:
+            if g.broker_factory.add_broker(
+                broker_type=config.broker_type,
+                api_key=config.api_key,
+                api_secret=config.api_secret,
+                account_id=config.account_id
+            ):
+                broker_initialized = True
+        
+        if not broker_initialized:
+            return jsonify({
+                "error": "Failed to initialize brokers",
+                "need_configuration": True
+            }), 400
+            
+        selected_broker = session.get('selected_broker')
+        broker = g.broker_factory.get_broker(selected_broker)
         details = broker.get_account_details()
+        
         if "error" in details:
             return jsonify({"error": details["error"]}), 400
             
-        # Add broker information to response
-        details["broker_used"] = broker_name
-        details["broker_status"] = broker_factory.get_broker_status(broker_name)
-        
-        return jsonify(details)
+        return jsonify({
+            "account": details,
+            "broker_used": selected_broker or g.broker_factory.current_broker,
+            "broker_status": "connected"
+        })
         
     except Exception as e:
-        error_msg = f"Failed to get account details: {str(e)}"
-        print(f"[account_details] ERROR: {error_msg}")
-        return jsonify({"error": error_msg}), 500
+        print(f"[account_details] ERROR: {str(e)}")
+        return jsonify({
+            "error": str(e),
+            "need_configuration": "configure broker credentials" in str(e).lower()
+        }), 500
 
 # Error handlers
 @app.errorhandler(404)
