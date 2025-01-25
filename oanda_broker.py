@@ -1,4 +1,3 @@
-
 import requests
 from oandapyV20 import API
 from oandapyV20.exceptions import V20Error
@@ -17,6 +16,21 @@ class OandaBroker:
             "Authorization": f"Bearer {api_key}",
             "Accept-Datetime-Format": "RFC3339"
         }
+
+    def test_connection(self):
+        """Test connection to OANDA API"""
+        try:
+            response = requests.get(
+                f"{self.base_url}/v3/accounts/{self.account_id}/summary",
+                headers=self.headers
+            )
+            if response.status_code == 200:
+                return True
+            print(f"OANDA connection test failed: {response.status_code} - {response.text}")
+            return False
+        except Exception as e:
+            print(f"OANDA connection test failed: {str(e)}")
+            return False
 
     def get_account_details(self):
         """Get account details with enhanced error handling"""

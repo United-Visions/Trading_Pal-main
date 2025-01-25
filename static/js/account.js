@@ -21,6 +21,12 @@ class AccountManager {
         
         // Set up auto-refresh every 30 seconds
         setInterval(() => this.loadAccountDetails(), 30000);
+        
+        // Add session check
+        this.checkSession();
+        
+        // Check session every minute
+        setInterval(() => this.checkSession(), 60000);
     }
 
     initializeEventListeners() {
@@ -73,21 +79,61 @@ class AccountManager {
     async loadAccountDetails() {
         try {
             const response = await axios.get('/api/v1/account_details');
-            const data = response.data.account;
+            const data = response.data;
             
-            if (data) {
-                this.balanceElement.textContent = `Balance: ${parseFloat(data.balance).toFixed(2)} USD`;
-                this.leverageElement.textContent = `Leverage: ${data.marginRate || 'N/A'}`;
-                this.positionsElement.textContent = `Open Positions: ${data.openPositionCount || 0}`;
-                this.tradesElement.textContent = `Open Trades: ${data.openTradeCount || 0}`;
-                this.marginElement.textContent = `Available Margin: ${parseFloat(data.marginAvailable).toFixed(2)} USD`;
-                this.plElement.textContent = `Profit/Loss: ${parseFloat(data.pl).toFixed(2)} USD`;
+            if (data.error || !data.account) {
+                throw new Error(data.error || 'Invalid account data');
             }
+
+            this.updateAccountDisplay(data.account);
+            
         } catch (error) {
             console.error('Failed to load account details:', error);
-            this.displayError('Please configure your broker settings');
-            this.settingsModal.classList.remove('hidden');
-            this.settingsModal.classList.add('flex');
+            
+            // Check if configuration is needed
+            if (error.response?.data?.need_configuration) {
+                this.displayError('Please configure your broker settings');
+                this.settingsModal.classList.remove('hidden');
+                this.settingsModal.classList.add('flex');
+            } else {
+                this.displayError(error.response?.data?.error || 'Failed to load account details');
+            }
+        }
+    }
+
+    updateAccountDisplay(data) {
+        if (data) {
+            this.balanceElement.textContent = `Balance: ${parseFloat(data.balance).toFixed(2)} USD`;
+            this.leverageElement.textContent = `Leverage: ${data.marginRate || 'N/A'}`;
+            this.positionsElement.textContent = `Open Positions: ${data.openPositionCount || 0}`;
+            this.tradesElement.textContent = `Open Trades: ${data.openTradeCount || 0}`;
+            this.marginElement.textContent = `Available Margin: ${parseFloat(data.marginAvailable).toFixed(2)} USD`;
+            this.plElement.textContent = `Profit/Loss: ${parseFloat(data.pl).toFixed(2)} USD`;
+        }
+    }
+
+    async checkSession() {
+        try {
+            const response = await axios.get('/auth/session/check');
+            if (response.data.authenticated) {
+                // Update broker selection if needed
+                if (response.data.selected_broker) {
+                    this.currentBroker = response.data.selected_broker;
+                    localStorage.setItem('selectedBroker', this.currentBroker);
+                    this.updateBrokerToggle();
+                }
+                
+                // Reload account details
+                await this.loadAccountDetails();
+            } else {
+                // Redirect to login if session expired
+                window.location.href = '/auth/login';
+            }
+        } catch (error) {
+            console.error('Session check failed:', error);
+            if (error.response?.status === 401) {
+                window.location.href = '/auth/login';
+            }
         }
     }
 
