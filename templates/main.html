@@ -23,6 +23,14 @@
             }
         }
     </script>
+    <style>
+        .broker-toggle.active {
+            background-color: var(--trading-accent);
+        }
+        input, select {
+            color: white;
+        }
+    </style>
 </head>
 <body class="bg-trading-dark text-white min-h-screen">
     <!-- Navbar -->
@@ -36,6 +44,15 @@
                     <h1 class="text-xl font-bold">TradingPal 1.0</h1>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <!-- Add Broker Toggle -->
+                    <div class="flex items-center bg-trading-medium rounded-lg p-1">
+                        <button id="oanda-toggle" class="px-4 py-2 rounded-lg transition-colors text-white broker-toggle active">
+                            Oanda
+                        </button>
+                        <button id="alpaca-toggle" class="px-4 py-2 rounded-lg transition-colors text-white broker-toggle">
+                            Alpaca
+                        </button>
+                    </div>
                     <button id="backtest-btn" class="px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
                         Backtest
                     </button>
@@ -64,7 +81,12 @@
             </div>
 
             <div class="flex-none p-4 bg-trading-medium rounded-lg">
-                <h3 class="font-semibold mb-2">Account Details</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold">Account Details</h3>
+                    <button id="settings-btn" class="text-trading-accent hover:text-trading-hover">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
                 <div class="space-y-2 text-sm">
                     <p id="user-balance">Balance: --</p>
                     <p id="user-leverage">Leverage: --</p>
@@ -112,10 +134,59 @@
         <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
     </div>
 
+    <!-- Add Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-trading-medium rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Broker Settings</h2>
+                <button id="close-settings" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="broker-settings-form" class="space-y-4">
+                <div>
+                    <label class="block mb-2">Select Broker</label>
+                    <select id="broker-select" class="w-full p-2 bg-trading-dark rounded-lg">
+                        <option value="oanda">Oanda</option>
+                        <option value="alpaca">Alpaca</option>
+                    </select>
+                </div>
+                
+                <div class="oanda-fields">
+                    <div class="mb-4">
+                        <label class="block mb-2">API Key</label>
+                        <input type="password" id="oanda-api-key" class="w-full p-2 bg-trading-dark rounded-lg">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">Account ID</label>
+                        <input type="text" id="oanda-account-id" class="w-full p-2 bg-trading-dark rounded-lg">
+                    </div>
+                </div>
+                
+                <div class="alpaca-fields hidden">
+                    <div class="mb-4">
+                        <label class="block mb-2">API Key</label>
+                        <input type="password" id="alpaca-api-key" class="w-full p-2 bg-trading-dark rounded-lg">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2">API Secret</label>
+                        <input type="password" id="alpaca-api-secret" class="w-full p-2 bg-trading-dark rounded-lg">
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg">
+                    Save Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Load JavaScript files -->
+    <script src="{{ url_for('static', filename='js/user_config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/account.js') }}"></script>
     <script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/orders.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/account.js') }}"></script>
 </body>
 </html>
