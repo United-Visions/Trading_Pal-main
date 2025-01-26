@@ -78,7 +78,7 @@ class AccountManager {
 
     async loadAccountDetails() {
         try {
-            const response = await axios.get('/api/v1/account_details');
+            const response = await axios.get(`/api/v1/account_details?broker=${this.currentBroker}`);
             const data = response.data;
             
             if (data.error || !data.account) {
