@@ -13,24 +13,41 @@ class BrokerFactory:
         self.current_broker = None
 
     def initialize_user_brokers(self, user: User):
-        """Initialize all active brokers for a user"""
+        """Initialize all active brokers for a user, prioritizing OANDA"""
         try:
             configs = BrokerConfig.query.filter_by(
                 user_id=user.id,
                 is_active=True
             ).all()
             
+            oanda_config = None
+            alpaca_config = None
+            
             for config in configs:
+                if config.broker_type == 'oanda':
+                    oanda_config = config
+                elif config.broker_type == 'alpaca':
+                    alpaca_config = config
+            
+            # Try to initialize OANDA first
+            if oanda_config:
                 self.add_broker(
-                    broker_type=config.broker_type,
-                    api_key=config.api_key,
-                    api_secret=config.api_secret,
-                    account_id=config.account_id
+                    broker_type=oanda_config.broker_type,
+                    api_key=oanda_config.api_key,
+                    api_secret=oanda_config.api_secret,
+                    account_id=oanda_config.account_id
                 )
-                
-            # Set first available broker as current
-            if self.brokers and not self.current_broker:
-                self.current_broker = next(iter(self.brokers.keys()))
+                self.current_broker = 'oanda'
+            
+            # If OANDA is not available, try Alpaca
+            if alpaca_config and 'oanda' not in self.brokers:
+                self.add_broker(
+                    broker_type=alpaca_config.broker_type,
+                    api_key=alpaca_config.api_key,
+                    api_secret=alpaca_config.api_secret,
+                    account_id=alpaca_config.account_id
+                )
+                self.current_broker = 'alpaca'
                 
             return len(self.brokers) > 0
             
