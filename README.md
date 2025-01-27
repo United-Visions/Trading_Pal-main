@@ -1,6 +1,6 @@
 # TradingPal 1.0
 
-![TradingPal Logo](static/tradingpal.png)
+![TradingPal Logo](Trading_Pal-main/static/tradingpal.png)
 
 ## Overview
 
