@@ -12,12 +12,22 @@ class UserConfigManager {
         this.closeSettings = document.getElementById('close-settings');
         this.brokerSelect = document.getElementById('broker-select');
         this.brokerSettingsForm = document.getElementById('broker-settings-form');
+        this.saveSettingsBtn = document.getElementById('save-settings-btn');
         this.brokerToggles = document.querySelectorAll('.broker-toggle');
         this.loadingIndicator = document.getElementById('loading-indicator');
+        this.editBtn = document.getElementById('edit-settings');
         
         // State
         this.currentBroker = localStorage.getItem('selectedBroker') || 'oanda';
         this.isInitialized = false;
+        this.isEditMode = false;
+        this.inputFields = [
+            'oanda-api-key',
+            'oanda-account-id',
+            'alpaca-api-key',
+            'alpaca-api-secret'
+        ];
+        this.activeBrokers = new Set();
         
         // Bind methods
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -43,24 +53,35 @@ class UserConfigManager {
 
     initializeEventListeners() {
         // Modal controls
-        this.settingsBtn.addEventListener('click', () => {
-            console.log('Opening settings modal');
-            this.showModal();
-        });
+        if (this.settingsBtn) {
+            this.settingsBtn.addEventListener('click', () => {
+                console.log('Opening settings modal');
+                this.showModal();
+            });
+        }
 
-        this.closeSettings.addEventListener('click', () => {
-            console.log('Closing settings modal');
-            this.hideModal();
-        });
+        if (this.closeSettings) {
+            this.closeSettings.addEventListener('click', () => {
+                console.log('Closing settings modal');
+                this.hideModal();
+            });
+        }
 
         // Broker selection
-        this.brokerSelect.addEventListener('change', () => {
-            const selectedBroker = this.brokerSelect.value;
-            this.toggleBrokerFields(selectedBroker);
-        });
+        if (this.brokerSelect) {
+            this.brokerSelect.addEventListener('change', () => {
+                const selectedBroker = this.brokerSelect.value;
+                this.toggleBrokerFields(selectedBroker);
+            });
+        }
 
         // Form submission
-        this.brokerSettingsForm.addEventListener('submit', this.handleSubmit);
+        if (this.brokerSettingsForm) {
+            this.brokerSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleSubmit(e);
+            });
+        }
 
         // Broker toggles
         this.brokerToggles.forEach(toggle => {
@@ -83,12 +104,29 @@ class UserConfigManager {
                 this.hideModal();
             }
         });
+
+        // Add edit button listener
+        if (this.editBtn) {
+            this.editBtn.addEventListener('click', () => {
+                this.toggleEditMode();
+            });
+        }
     }
 
     showModal() {
         this.settingsModal.classList.remove('hidden');
         this.settingsModal.classList.add('flex');
+        this.isEditMode = false;
         this.loadBrokerSettings();
+        
+        // Ensure inputs are disabled and save button is hidden initially
+        this.inputFields.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.disabled = true;
+        });
+        if (this.saveSettingsBtn) {
+            this.saveSettingsBtn.style.display = 'none';
+        }
     }
 
     hideModal() {
@@ -110,15 +148,26 @@ class UserConfigManager {
         
         try {
             const response = await axios.get('/api/v1/broker/settings');
-            console.log('Broker settings loaded:', response.data);
-            const settings = response.data;
+            const settings = response.data.settings;
             
-            this.populateForm(settings);
-            
-            // Update connection status if available
-            if (settings.status) {
-                this.updateConnectionStatus(settings.status);
+            // Update fields for both brokers
+            if (settings.oanda) {
+                document.getElementById('oanda-api-key').value = settings.oanda.api_key;
+                document.getElementById('oanda-account-id').value = settings.oanda.account_id;
             }
+            
+            if (settings.alpaca) {
+                document.getElementById('alpaca-api-key').value = settings.alpaca.api_key;
+                document.getElementById('alpaca-api-secret').value = settings.alpaca.api_secret;
+            }
+            
+            // Update market badges
+            this.updateMarketBadges(settings);
+            
+            // Update broker status indicators
+            Object.entries(settings).forEach(([broker, config]) => {
+                this.updateBrokerStatus(broker, config.status);
+            });
             
         } catch (error) {
             console.error('Failed to load broker settings:', error);
@@ -141,7 +190,10 @@ class UserConfigManager {
     }
 
     async handleSubmit(e) {
-        e.preventDefault();
+        if (!this.isEditMode) {
+            e.preventDefault();
+            return;
+        }
         console.log('Submitting broker settings');
         this.showLoading();
         
@@ -153,50 +205,50 @@ class UserConfigManager {
                 throw new Error('Please fill in all required fields');
             }
             
-            const response = await axios.post('/api/v1/broker/settings', settings);
+            const response = await axios.post('/api/v1/broker/settings', {
+                broker_type: selectedBroker,
+                settings: settings
+            });
+            
             console.log('Settings saved:', response.data);
             
-            this.showSuccess('Settings saved successfully');
-            
-            // Update local state
-            this.currentBroker = selectedBroker;
-            localStorage.setItem('selectedBroker', selectedBroker);
-            
-            // Delay hide modal to show success message
-            setTimeout(() => this.hideModal(), 1000);
-            
-            // Reload account details
-            await this.reloadAccountDetails();
+            if (response.data.status === 'connected') {
+                this.showSuccess('Settings saved and connected successfully');
+                this.updateBrokerToggle();
+                await this.reloadAccountDetails();
+                setTimeout(() => this.hideModal(), 1500);
+            } else {
+                throw new Error(response.data.error || 'Failed to connect to broker');
+            }
             
         } catch (error) {
             console.error('Failed to save settings:', error);
-            this.showError(error.response?.data?.error || 'Failed to save settings');
+            this.showError(error.response?.data?.error || error.message);
         } finally {
             this.hideLoading();
         }
     }
 
     getFormData(selectedBroker) {
-        return {
-            broker_type: selectedBroker,
-            settings: selectedBroker === 'oanda' ? {
+        let settings = {};
+        
+        if (selectedBroker === 'oanda') {
+            settings = {
                 api_key: document.getElementById('oanda-api-key').value,
                 account_id: document.getElementById('oanda-account-id').value
-            } : {
+            };
+        } else {
+            settings = {
                 api_key: document.getElementById('alpaca-api-key').value,
                 api_secret: document.getElementById('alpaca-api-secret').value
-            }
-        };
+            };
+        }
+        
+        return settings;
     }
 
     validateSettings(settings) {
-        const { broker_type, settings: brokerSettings } = settings;
-        
-        if (broker_type === 'oanda') {
-            return brokerSettings.api_key && brokerSettings.account_id;
-        } else {
-            return brokerSettings.api_key && brokerSettings.api_secret;
-        }
+        return Object.values(settings).every(value => value && value.trim() !== '');
     }
 
     async switchBroker(broker) {
@@ -214,6 +266,22 @@ class UserConfigManager {
             toggle.classList.remove('active', 'bg-trading-accent');
             if (toggle.id.includes(this.currentBroker)) {
                 toggle.classList.add('active', 'bg-trading-accent');
+            }
+        });
+    }
+
+    updateBrokerToggles() {
+        this.brokerToggles.forEach(toggle => {
+            const brokerType = toggle.id.split('-')[0];
+            const isConfigured = this.activeBrokers.has(brokerType);
+            
+            toggle.classList.toggle('opacity-50', !isConfigured);
+            toggle.disabled = !isConfigured;
+            
+            if (brokerType === this.currentBroker) {
+                toggle.classList.add('bg-primary-600');
+            } else {
+                toggle.classList.remove('bg-primary-600');
             }
         });
     }
@@ -249,11 +317,64 @@ class UserConfigManager {
         setTimeout(() => notification.remove(), 5000);
     }
 
-    updateConnectionStatus(status) {
+    updateConnectionStatus(broker, status) {
         const statusIndicator = document.createElement('div');
         statusIndicator.className = `text-sm ${status === 'connected' ? 'text-green-500' : 'text-red-500'}`;
         statusIndicator.textContent = `Status: ${status}`;
         this.brokerSettingsForm.insertBefore(statusIndicator, this.brokerSettingsForm.firstChild);
+    }
+
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        
+        // Update UI elements
+        this.editBtn.innerHTML = this.isEditMode ? 
+            '<i class="fas fa-times"></i>' : 
+            '<i class="fas fa-edit"></i>';
+            
+        // Enable/disable and show/hide fields based on broker type
+        ['oanda', 'alpaca'].forEach(broker => {
+            const fields = this.getBrokerFields(broker);
+            fields.forEach(field => {
+                const input = document.getElementById(field);
+                if (input) {
+                    input.disabled = !this.isEditMode;
+                    if (this.isEditMode) {
+                        input.type = 'text';  // Show actual values when editing
+                    } else {
+                        input.type = 'password';  // Mask when not editing
+                    }
+                }
+            });
+        });
+        
+        this.saveSettingsBtn.style.display = this.isEditMode ? 'block' : 'none';
+    }
+
+    getBrokerFields(broker) {
+        return broker === 'oanda' ? 
+            ['oanda-api-key', 'oanda-account-id'] :
+            ['alpaca-api-key', 'alpaca-api-secret'];
+    }
+
+    updateMarketBadges(settings) {
+        const badges = document.querySelectorAll('.market-badge');
+        badges.forEach(badge => {
+            const market = badge.dataset.market;
+            const isSupported = this.isMarketSupported(market, settings);
+            badge.classList.toggle('opacity-50', !isSupported);
+        });
+    }
+
+    isMarketSupported(market, settings) {
+        return Object.values(settings).some(config => 
+            config.supported_markets?.includes(market)
+        );
+    }
+
+    maskCredential(value) {
+        if (!value) return '';
+        return '•'.repeat(Math.min(value.length, 20));
     }
 }
 

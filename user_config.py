@@ -10,7 +10,6 @@ user_config_bp = Blueprint('user_config', __name__)
 @login_required
 def get_broker_settings():
     try:
-        # Get all active broker configurations for user
         configs = BrokerConfig.query.filter_by(
             user_id=current_user.id,
             is_active=True
@@ -18,10 +17,14 @@ def get_broker_settings():
         
         settings = {}
         for config in configs:
+            # Only return partial credentials for security
+            api_key_masked = config.api_key[:4] + '****' if config.api_key else None
+            api_secret_masked = config.api_secret[:4] + '****' if config.api_secret else None
+            
             settings[config.broker_type] = {
-                'api_key': config.api_key,
+                'api_key': api_key_masked,
                 'account_id': config.account_id if config.broker_type == 'oanda' else None,
-                'api_secret': config.api_secret if config.broker_type == 'alpaca' else None,
+                'api_secret': api_secret_masked if config.broker_type == 'alpaca' else None,
                 'status': config.connection_status,
                 'last_check': config.last_connection_check.isoformat() if config.last_connection_check else None
             }
@@ -55,12 +58,15 @@ def save_broker_settings():
                 broker_type=broker_type
             )
             
-        # Update configuration
-        config.api_key = settings.get('api_key')
+        # Update configuration using new field names
         if broker_type == 'oanda':
-            config.account_id = settings.get('account_id')
-        else:
-            config.api_secret = settings.get('api_secret')
+            config.oanda_api_key = settings.get('api_key')
+            config.oanda_account_id = settings.get('account_id')
+            config.supported_markets = ['forex']
+        else:  # alpaca
+            config.alpaca_api_key = settings.get('api_key')
+            config.alpaca_api_secret = settings.get('api_secret')
+            config.supported_markets = ['stocks', 'crypto']
             
         config.is_active = True
         config.updated_at = datetime.utcnow()
@@ -69,40 +75,42 @@ def save_broker_settings():
         broker_factory = BrokerFactory()
         connection_successful = broker_factory.test_broker_connection(
             broker_type=broker_type,
-            api_key=config.api_key,
-            api_secret=config.api_secret,
-            account_id=config.account_id
+            api_key=settings.get('api_key'),
+            api_secret=settings.get('api_secret') if broker_type == 'alpaca' else None,
+            account_id=settings.get('account_id') if broker_type == 'oanda' else None
         )
         
-        if connection_successful:
-            config.connection_status = 'connected'
-            config.last_connection_check = datetime.utcnow()
-            
-            db.session.add(config)
-            db.session.commit()
-            
-            # Update session
-            session['selected_broker'] = broker_type
-            session['available_brokers'] = [
-                c.broker_type for c in BrokerConfig.query.filter_by(
-                    user_id=current_user.id,
-                    is_active=True
-                ).all()
-            ]
-            
-            # Reinitialize broker factory with new settings
-            broker_factory.initialize_user_brokers(current_user)
-            
+        if not connection_successful:
             return jsonify({
-                "message": "Settings saved and connection verified",
-                "status": "connected",
-                "broker": broker_type
-            })
-        else:
-            return jsonify({
-                "error": "Could not connect to broker with provided settings"
+                "error": "Could not connect to broker with provided settings",
+                "status": "error"
             }), 400
+            
+        # Save configuration if connection test passed
+        config.connection_status = 'connected'
+        config.last_connection_check = datetime.utcnow()
+        
+        db.session.add(config)
+        db.session.commit()
+        
+        # Update session
+        session['selected_broker'] = broker_type
+        session['available_brokers'] = [
+            c.broker_type for c in BrokerConfig.query.filter_by(
+                user_id=current_user.id,
+                is_active=True
+            ).all()
+        ]
+        
+        return jsonify({
+            "message": "Settings saved and connection verified",
+            "status": "connected",
+            "broker": broker_type
+        })
             
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e),
+            "status": "error"
+        }), 500
