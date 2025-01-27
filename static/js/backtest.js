@@ -1,134 +1,88 @@
 class BacktestManager {
     constructor() {
-        this.strategyForm = document.getElementById('strategyForm');
-        this.strategyList = document.getElementById('strategyList');
-        this.backtestResults = document.getElementById('backtestResults');
-        this.assistantResponse = document.getElementById('assistantResponse');
-        this.searchInput = document.getElementById('searchStrategies');
-        this.loadingIndicator = document.getElementById('loading-indicator');
-        this.plotContainer = document.getElementById('plot-container');
+        this.elements = {
+            strategyForm: document.getElementById('strategyForm'),
+            strategyList: document.getElementById('strategyList'),
+            backtestResults: document.getElementById('backtestResults'),
+            assistantResponse: document.getElementById('assistantResponse'),
+            searchInput: document.getElementById('searchStrategies'),
+            loadingIndicator: document.getElementById('loading-indicator'),
+            plotContainer: document.getElementById('plot-container'),
+            strategyCode: document.getElementById('strategyCode')
+        };
         
         this.setupEventListeners();
         this.loadSavedStrategies();
         this.loadStrategyFromLocalStorage();
+        this.initializeCodeEditor();
     }
 
     setupEventListeners() {
-        this.strategyForm.addEventListener('submit', (e) => this.handleSubmit(e));
-        this.searchInput.addEventListener('input', () => this.filterStrategies());
+        this.elements.strategyForm.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.elements.searchInput.addEventListener('input', () => this.filterStrategies());
         
-        // Add validation listeners
-        const inputs = this.strategyForm.querySelectorAll('input, textarea');
+        const inputs = this.elements.strategyForm.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             input.addEventListener('input', () => this.validateInput(input));
+            input.addEventListener('focus', () => this.handleInputFocus(input));
+            input.addEventListener('blur', () => this.handleInputBlur(input));
         });
     }
 
-    validateInput(input) {
-        const value = input.value.trim();
-        if (!value) {
-            input.classList.add('border-red-500');
-            return false;
-        }
+    initializeCodeEditor() {
+        const copyBtn = this.elements.strategyCode.parentElement.querySelector('.fa-copy').parentElement;
+        const expandBtn = this.elements.strategyCode.parentElement.querySelector('.fa-expand').parentElement;
 
-        // Additional validation for currency pair
-        if (input.id === 'currencyPair') {
-            const validPairs = ['USD/JPY', 'EUR/USD', 'GBP/USD', 'USD/CHF', 'AUD/USD', 'USD/CAD'];
-            if (!validPairs.some(pair => value.toUpperCase().includes(pair))) {
-                input.classList.add('border-red-500');
-                this.showError('Invalid currency pair format. Example: USD/JPY');
-                return false;
-            }
-        }
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(this.elements.strategyCode.value);
+            this.showNotification('Code copied to clipboard', 'success');
+        });
 
-        // Additional validation for timeframe
-        if (input.id === 'timeFrame') {
-            const validTimeframes = ['1h', '4h', '1d', '1m', '30m', 'H1', 'H4', 'D', 'M1', 'M30'];
-            if (!validTimeframes.some(tf => value.toLowerCase() === tf.toLowerCase())) {
-                input.classList.add('border-red-500');
-                this.showError('Invalid timeframe. Valid examples: 1h, 4h, 1d, 30m');
-                return false;
-            }
-        }
-
-        input.classList.remove('border-red-500');
-        return true;
+        expandBtn.addEventListener('click', () => {
+            this.toggleFullscreenEditor();
+        });
     }
 
-    async loadSavedStrategies() {
-        try {
-            console.log('Loading saved strategies...');
-            const response = await axios.get('/api/v1/strategies');
-            this.strategyList.innerHTML = '';
-            
-            response.data.forEach(strategy => {
-                const li = this.createStrategyListItem(strategy);
-                this.strategyList.appendChild(li);
+    toggleFullscreenEditor() {
+        const editorContainer = this.elements.strategyCode.parentElement;
+        const isFullscreen = editorContainer.classList.contains('fixed');
+
+        if (isFullscreen) {
+            gsap.to(editorContainer, {
+                scale: 1,
+                opacity: 0,
+                duration: 0.3,
+                onComplete: () => {
+                    editorContainer.classList.remove('fixed', 'inset-4', 'z-50', 'bg-dark-900/95', 'p-6');
+                    gsap.set(editorContainer, { clearProps: 'all' });
+                }
             });
-            console.log('Saved strategies loaded successfully.');
-        } catch (error) {
-            console.error('Error loading strategies:', error);
-            this.showError('Failed to load saved strategies');
+        } else {
+            editorContainer.classList.add('fixed', 'inset-4', 'z-50', 'bg-dark-900/95', 'p-6');
+            gsap.from(editorContainer, {
+                scale: 0.95,
+                opacity: 0,
+                duration: 0.3
+            });
         }
-    }
-
-    createStrategyListItem(strategy) {
-        const li = document.createElement('li');
-        li.className = 'p-3 bg-trading-dark rounded-lg hover:bg-trading-medium cursor-pointer transition-colors mb-2';
-        li.innerHTML = `
-            <div class="flex justify-between items-center">
-                <div>
-                    <h3 class="font-semibold">${strategy.name}</h3>
-                    <p class="text-sm text-gray-400">${strategy.currency_pair} - ${strategy.time_frame}</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button class="backtest-btn px-2 py-1 bg-trading-accent hover:bg-trading-hover rounded">
-                        <i class="fas fa-play"></i>
-                    </button>
-                    <button class="delete-btn px-2 py-1 bg-red-500 hover:bg-red-600 rounded">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-
-        li.querySelector('.backtest-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.loadStrategy(strategy);
-        });
-
-        li.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.deleteStrategy(strategy.id);
-        });
-
-        return li;
     }
 
     async handleSubmit(e) {
         e.preventDefault();
         
-        // Validate all inputs
-        const inputs = this.strategyForm.querySelectorAll('input, textarea');
-        let isValid = true;
-        inputs.forEach(input => {
-            if (!this.validateInput(input)) isValid = false;
-        });
-        
-        if (!isValid) {
-            this.showError('Please fill in all required fields');
+        if (!this.validateForm()) {
+            this.showNotification('Please fill in all required fields correctly', 'error');
             return;
         }
 
         const formData = {
-            strategyName: document.getElementById('strategyName').value,
-            authorName: document.getElementById('authorName').value,
-            strategyCode: document.getElementById('strategyCode').value,
-            currencyPair: document.getElementById('currencyPair').value,
-            timeFrame: document.getElementById('timeFrame').value
+            strategyName: this.elements.strategyForm.querySelector('#strategyName').value,
+            authorName: this.elements.strategyForm.querySelector('#authorName').value,
+            strategyCode: this.elements.strategyCode.value,
+            currencyPair: this.elements.strategyForm.querySelector('#currencyPair').value,
+            timeFrame: this.elements.strategyForm.querySelector('#timeFrame').value
         };
 
-        console.log('Submitting form data:', formData);
         this.showLoadingIndicator();
 
         try {
@@ -136,146 +90,290 @@ class BacktestManager {
             const data = response.data;
 
             if (data.error) {
-                this.showError(data.error);
-                return;
+                throw new Error(data.error);
             }
 
-            console.log('Backtest results received:', data);
-            this.displayBacktestResults(data);
-            this.updateAssistantAnalysis(data.analysis);
-            this.displayPlot(data.plotUrl);
-            
-            // Save strategy
+            await this.displayResults(data);
             await this.saveStrategy(formData);
             await this.loadSavedStrategies();
 
         } catch (error) {
-            console.error('Error:', error);
-            this.showError(error.message);
+            this.showNotification(error.message, 'error');
         } finally {
             this.hideLoadingIndicator();
         }
     }
 
-    displayBacktestResults(data) {
-        this.backtestResults.classList.remove('hidden');
-        this.backtestResults.innerHTML = `
-            <h2 class="text-xl font-bold mb-4">Backtest Results</h2>
-            <div class="grid grid-cols-2 gap-4">
-                ${Object.entries(data.backtestResults).map(([key, value]) => `
-                    <div class="bg-trading-dark p-4 rounded-lg">
-                        <h3 class="font-semibold mb-2">${this.formatMetricName(key)}</h3>
-                        <p class="text-2xl ${this.getMetricColor(key, value)}">${this.formatMetricValue(key, value)}</p>
-                    </div>
-                `).join('')}
+    async displayResults(data) {
+        const results = this.elements.backtestResults;
+        results.classList.remove('hidden');
+
+        gsap.set(results, { opacity: 0, y: 20 });
+        
+        // Clear previous results
+        const metricsContainer = results.querySelector('.grid');
+        metricsContainer.innerHTML = '';
+
+        // Add new metric cards with animations
+        Object.entries(data.backtestResults).forEach(([key, value], index) => {
+            const card = this.createMetricCard(key, value);
+            metricsContainer.appendChild(card);
+            
+            gsap.from(card, {
+                opacity: 0,
+                y: 20,
+                duration: 0.3,
+                delay: index * 0.1
+            });
+        });
+
+        // Update AI analysis with animation
+        if (data.analysis) {
+            this.elements.assistantResponse.innerHTML = marked(data.analysis);
+            gsap.from(this.elements.assistantResponse, {
+                opacity: 0,
+                y: 20,
+                duration: 0.3,
+                delay: 0.3
+            });
+        }
+
+        // Display plot if available
+        if (data.plotUrl) {
+            this.elements.plotContainer.innerHTML = `
+                <img src="${data.plotUrl}" alt="Backtest Plot" class="w-full h-auto rounded-xl">
+            `;
+            gsap.from(this.elements.plotContainer, {
+                opacity: 0,
+                y: 20,
+                duration: 0.3,
+                delay: 0.4
+            });
+        }
+
+        gsap.to(results, {
+            opacity: 1,
+            y: 0,
+            duration: 0.3
+        });
+    }
+
+    createMetricCard(key, value) {
+        const card = document.createElement('div');
+        card.className = 'metric-card p-4 rounded-xl bg-dark-800/30 border border-dark-700';
+        
+        const trend = this.getMetricTrend(key, value);
+        const formattedValue = this.formatMetricValue(key, value);
+        
+        card.innerHTML = `
+            <h3 class="text-sm font-medium text-dark-300 mb-1">${this.formatMetricName(key)}</h3>
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl font-bold ${this.getMetricColor(key, value)}">${formattedValue}</span>
+                ${trend ? `<i class="fas ${trend.icon} text-${trend.color}-500"></i>` : ''}
             </div>
         `;
+        
+        return card;
     }
 
-    formatMetricName(key) {
-        return key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    }
-
-    formatMetricValue(key, value) {
-        if (typeof value === 'number') {
-            if (key.includes('percentage') || key.includes('rate')) {
-                return value.toFixed(2) + '%';
-            }
-            if (key.includes('ratio')) {
-                return value.toFixed(3);
-            }
-            return value.toFixed(2);
-        }
-        return value;
-    }
-
-    getMetricColor(key, value) {
-        if (typeof value !== 'number') return '';
+    getMetricTrend(key, value) {
+        if (typeof value !== 'number') return null;
         
         if (key.includes('return') || key.includes('profit') || key.includes('gain')) {
-            return value > 0 ? 'text-green-500' : 'text-red-500';
+            return value > 0 
+                ? { icon: 'fa-trending-up', color: 'success' }
+                : { icon: 'fa-trending-down', color: 'danger' };
         }
         
         if (key.includes('drawdown') || key.includes('loss')) {
-            return value < -10 ? 'text-red-500' : 'text-yellow-500';
+            return value < -10
+                ? { icon: 'fa-triangle-exclamation', color: 'danger' }
+                : { icon: 'fa-triangle-exclamation', color: 'warning' };
         }
         
-        return '';
+        return null;
     }
 
-    updateAssistantAnalysis(analysis) {
-        this.assistantResponse.innerHTML = `
-            <div class="prose prose-invert">
-                ${marked(analysis)}
+    validateInput(input) {
+        const value = input.value.trim();
+        const isValid = this.validateField(input.id, value);
+
+        gsap.to(input, {
+            borderColor: isValid ? 'rgba(0, 144, 255, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+            duration: 0.3
+        });
+
+        return isValid;
+    }
+
+    validateField(fieldId, value) {
+        if (!value) return false;
+
+        const validators = {
+            currencyPair: pair => /^[A-Z]{3}\/[A-Z]{3}$/.test(pair.toUpperCase()),
+            timeFrame: tf => ['1h', '4h', '1d', '1m', '30m', 'H1', 'H4', 'D', 'M1', 'M30'].includes(tf),
+            strategyCode: code => code.length > 10,
+            strategyName: name => name.length >= 3,
+            authorName: name => name.length >= 2
+        };
+
+        return validators[fieldId] ? validators[fieldId](value) : true;
+    }
+
+    handleInputFocus(input) {
+        gsap.to(input, {
+            scale: 1.02,
+            duration: 0.2
+        });
+    }
+
+    handleInputBlur(input) {
+        gsap.to(input, {
+            scale: 1,
+            duration: 0.2
+        });
+    }
+
+    showNotification(message, type = 'info') {
+        const colors = {
+            success: 'from-success-500 to-success-600',
+            error: 'from-danger-500 to-danger-600',
+            info: 'from-primary-500 to-primary-600'
+        };
+
+        const notification = document.createElement('div');
+        notification.className = `fixed bottom-4 right-4 bg-gradient-to-r ${colors[type]} 
+                                text-white px-6 py-3 rounded-xl shadow-lg z-50`;
+        notification.textContent = message;
+
+        gsap.set(notification, { opacity: 0, y: 20 });
+        document.body.appendChild(notification);
+
+        gsap.to(notification, {
+            opacity: 1,
+            y: 0,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+
+        setTimeout(() => {
+            gsap.to(notification, {
+                opacity: 0,
+                y: 20,
+                duration: 0.3,
+                ease: 'power2.in',
+                onComplete: () => notification.remove()
+            });
+        }, 5000);
+    }
+
+    async loadSavedStrategies() {
+        try {
+            const response = await axios.get('/api/v1/strategies');
+            this.elements.strategyList.innerHTML = '';
+            
+            response.data.forEach((strategy, index) => {
+                const item = this.createStrategyListItem(strategy);
+                gsap.set(item, { opacity: 0, y: 20 });
+                this.elements.strategyList.appendChild(item);
+                
+                gsap.to(item, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.3,
+                    delay: index * 0.1
+                });
+            });
+        } catch (error) {
+            this.showNotification('Failed to load saved strategies', 'error');
+        }
+    }
+
+    createStrategyListItem(strategy) {
+        const li = document.createElement('div');
+        li.className = 'strategy-card p-4 rounded-xl bg-dark-800/30 border border-dark-700 hover:bg-dark-800/50 transition-all duration-300';
+        
+        li.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div class="space-y-1">
+                    <h3 class="font-semibold text-primary-100">${strategy.name}</h3>
+                    <p class="text-sm text-dark-400">${strategy.currency_pair} - ${strategy.time_frame}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="action-button p-2 rounded-lg bg-primary-500/10 text-primary-400 
+                                 hover:bg-primary-500/20 transition-all duration-300">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="action-button p-2 rounded-lg bg-danger-500/10 text-danger-400 
+                                 hover:bg-danger-500/20 transition-all duration-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         `;
-    }
 
-    displayPlot(plotUrl) {
-        this.plotContainer.innerHTML = `
-            <img src="${plotUrl}" alt="Backtest Plot" class="w-full h-auto rounded-lg">
-        `;
+        li.querySelector('.fa-play').parentElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.loadStrategy(strategy);
+        });
+
+        li.querySelector('.fa-trash').parentElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteStrategy(strategy.id);
+        });
+
+        return li;
     }
 
     async deleteStrategy(id) {
         if (!confirm('Are you sure you want to delete this strategy?')) return;
         
         try {
-            console.log(`Deleting strategy with ID: ${id}`);
             await axios.delete(`/api/v1/strategy/${id}`);
             await this.loadSavedStrategies();
-            console.log('Strategy deleted successfully.');
+            this.showNotification('Strategy deleted successfully', 'success');
         } catch (error) {
-            console.error('Error deleting strategy:', error);
-            this.showError('Failed to delete strategy');
+            this.showNotification('Failed to delete strategy', 'error');
         }
     }
 
-    async loadStrategy(strategy) {
-        console.log('Loading strategy:', strategy);
-        document.getElementById('strategyName').value = strategy.name;
-        document.getElementById('authorName').value = strategy.authorName || 'Anonymous';
-        document.getElementById('strategyCode').value = strategy.algo_code;
-        document.getElementById('currencyPair').value = strategy.currency_pair;
-        document.getElementById('timeFrame').value = strategy.time_frame;
-    }
+    loadStrategy(strategy) {
+        const fields = {
+            strategyName: strategy.name,
+            authorName: strategy.authorName || 'Anonymous',
+            strategyCode: strategy.algo_code,
+            currencyPair: strategy.currency_pair,
+            timeFrame: strategy.time_frame
+        };
 
-    loadStrategyFromLocalStorage() {
-        const strategyData = JSON.parse(localStorage.getItem('strategyData'));
-        if (strategyData) {
-            console.log('Loading strategy from local storage:', strategyData);
-            document.getElementById('strategyName').value = strategyData.name;
-            document.getElementById('authorName').value = 'AI Assistant';
-            document.getElementById('strategyCode').value = strategyData.code;
-            document.getElementById('currencyPair').value = strategyData.currency_pair;
-            document.getElementById('timeFrame').value = strategyData.timeframe;
-            localStorage.removeItem('strategyData');
-        }
-    }
-
-    filterStrategies() {
-        const searchTerm = this.searchInput.value.toLowerCase();
-        const items = this.strategyList.getElementsByTagName('li');
-        Array.from(items).forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(searchTerm) ? '' : 'none';
+        Object.entries(fields).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value;
+                gsap.from(element, {
+                    scale: 1.02,
+                    duration: 0.3
+                });
+            }
         });
     }
 
-    showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg';
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
-    }
-
     showLoadingIndicator() {
-        this.loadingIndicator.classList.remove('hidden');
+        gsap.set(this.elements.loadingIndicator, { display: 'flex', opacity: 0 });
+        gsap.to(this.elements.loadingIndicator, {
+            opacity: 1,
+            duration: 0.3
+        });
     }
 
     hideLoadingIndicator() {
-        this.loadingIndicator.classList.add('hidden');
+        gsap.to(this.elements.loadingIndicator, {
+            opacity: 0,
+            duration: 0.3,
+            onComplete: () => {
+                this.elements.loadingIndicator.style.display = 'none';
+            }
+        });
     }
 }
 

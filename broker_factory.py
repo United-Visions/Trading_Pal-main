@@ -11,84 +11,80 @@ class BrokerFactory:
         self.brokers = {}
         self.broker_status = {}
         self.current_broker = None
+        self.active_brokers = set()
 
     def initialize_user_brokers(self, user: User):
-        """Initialize all active brokers for a user, prioritizing OANDA"""
+        """Initialize all active brokers for a user"""
         try:
             configs = BrokerConfig.query.filter_by(
                 user_id=user.id,
                 is_active=True
             ).all()
             
-            oanda_config = None
-            alpaca_config = None
+            success = False
             
             for config in configs:
+                credentials = config.get_credentials()
                 if config.broker_type == 'oanda':
-                    oanda_config = config
+                    success = self.add_broker(
+                        broker_type='oanda',
+                        api_key=config.oanda_api_key,
+                        account_id=config.oanda_account_id
+                    )
                 elif config.broker_type == 'alpaca':
-                    alpaca_config = config
-            
-            # Try to initialize OANDA first
-            if oanda_config:
-                self.add_broker(
-                    broker_type=oanda_config.broker_type,
-                    api_key=oanda_config.api_key,
-                    api_secret=oanda_config.api_secret,
-                    account_id=oanda_config.account_id
-                )
-                self.current_broker = 'oanda'
-            
-            # If OANDA is not available, try Alpaca
-            if alpaca_config and 'oanda' not in self.brokers:
-                self.add_broker(
-                    broker_type=alpaca_config.broker_type,
-                    api_key=alpaca_config.api_key,
-                    api_secret=alpaca_config.api_secret,
-                    account_id=alpaca_config.account_id
-                )
-                self.current_broker = 'alpaca'
+                    success = self.add_broker(
+                        broker_type='alpaca',
+                        api_key=config.alpaca_api_key,
+                        api_secret=config.alpaca_api_secret
+                    )
                 
-            return len(self.brokers) > 0
+                if success:
+                    self.active_brokers.add(config.broker_type)
+                    
+                    # Set current broker if not set
+                    if not self.current_broker:
+                        self.current_broker = config.broker_type
+                        
+            return success
             
         except Exception as e:
             print(f"Error initializing brokers: {e}")
             return False
 
-    def add_broker(self, broker_type, api_key, api_secret=None, account_id=None):
+    def add_broker(self, broker_type, api_key=None, api_secret=None, account_id=None):
         """Add a broker instance to the factory with improved error handling"""
         try:
-            if not api_key:
-                raise ValueError(f"API key is required for {broker_type}")
-
             broker = None
             if broker_type == 'oanda':
+                if not api_key:
+                    api_key = config.oanda_api_key
                 if not account_id:
-                    raise ValueError("Account ID is required for OANDA")
+                    account_id = config.oanda_account_id
+                    
                 broker = OandaBroker(api_key=api_key, account_id=account_id)
-            
+                
             elif broker_type == 'alpaca':
+                if not api_key:
+                    api_key = config.alpaca_api_key
                 if not api_secret:
-                    raise ValueError("API secret is required for Alpaca")
-                try:
-                    broker = AlpacaBroker(
-                        api_key=api_key,
-                        api_secret=api_secret,
-                        paper=True
-                    )
-                except Exception as e:
-                    raise ConnectionError(f"Failed to connect to Alpaca: {str(e)}")
+                    api_secret = config.alpaca_api_secret
+                    
+                broker = AlpacaBroker(api_key=api_key, api_secret=api_secret)
             else:
                 raise ValueError(f"Unsupported broker type: {broker_type}")
 
             # Test connection before storing
             if not broker or not broker.test_connection():
                 self.broker_status[broker_type] = "disconnected"
-                raise ConnectionError(f"Failed to connect to {broker_type}")
+                return False
 
-            # Store broker if connection test passes
             self.brokers[broker_type] = broker
             self.broker_status[broker_type] = "connected"
+            self.active_brokers.add(broker_type)
+            
+            if not self.current_broker:
+                self.current_broker = broker_type
+                
             return True
 
         except Exception as e:

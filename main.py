@@ -594,35 +594,39 @@ def backtest_page():
 @app.route('/api/v1/account_details', methods=['GET'])
 @login_required
 def account_details():
-    """Get account details from selected broker"""
     try:
-        if not hasattr(g, 'broker_factory'):
-            g.broker_factory = BrokerFactory()
+        broker_type = request.args.get('broker')
+        if not broker_type:
+            return jsonify({"error": "Broker type not specified"}), 400
             
-        # Initialize brokers from active configs
-        active_configs = BrokerConfig.query.filter_by(
+        broker_config = BrokerConfig.query.filter_by(
             user_id=current_user.id,
+            broker_type=broker_type,
             is_active=True
-        ).all()
+        ).first()
         
-        broker_initialized = False
-        for config in active_configs:
-            if g.broker_factory.add_broker(
-                broker_type=config.broker_type,
-                api_key=config.api_key,
-                api_secret=config.api_secret,
-                account_id=config.account_id
-            ):
-                broker_initialized = True
-        
-        if not broker_initialized:
+        if not broker_config:
             return jsonify({
-                "error": "Failed to initialize brokers",
+                "error": "Broker not configured",
                 "need_configuration": True
             }), 400
             
-        selected_broker = session.get('selected_broker')
-        broker = g.broker_factory.get_broker(selected_broker)
+        # Initialize the specific broker
+        broker_factory = BrokerFactory()
+        success = broker_factory.add_broker(
+            broker_type=broker_config.broker_type,
+            api_key=broker_config.api_key,
+            api_secret=broker_config.api_secret,
+            account_id=broker_config.account_id
+        )
+        
+        if not success:
+            return jsonify({
+                "error": f"Failed to initialize {broker_type} broker",
+                "need_configuration": True
+            }), 400
+            
+        broker = broker_factory.get_broker(broker_type)
         details = broker.get_account_details()
         
         if "error" in details:
@@ -630,12 +634,11 @@ def account_details():
             
         return jsonify({
             "account": details,
-            "broker_used": selected_broker or g.broker_factory.current_broker,
-            "broker_status": "connected"
+            "broker": broker_type,
+            "status": "connected"
         })
         
     except Exception as e:
-        print(f"[account_details] ERROR: {str(e)}")
         return jsonify({
             "error": str(e),
             "need_configuration": "configure broker credentials" in str(e).lower()

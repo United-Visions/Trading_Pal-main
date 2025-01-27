@@ -3,60 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TradingPal 1.0</title>
+    <title>TradingPal - Trading Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        'trading-dark': '#141414',
-                        'trading-medium': '#272727',
-                        'trading-light': '#353535',
-                        'trading-accent': '#4e69a2',
-                        'trading-hover': '#3b528b'
+                        primary: {
+                            50: '#f0f7ff',
+                            100: '#e0f0ff', 
+                            200: '#b9e0ff',
+                            300: '#7cc5ff',
+                            400: '#36a9ff',
+                            500: '#0090ff',
+                            600: '#0070cc',
+                            700: '#005299',
+                            800: '#003666',
+                            900: '#001a33',
+                        },
+                        secondary: {
+                            50: '#f5f3ff',
+                            100: '#ede8ff',
+                            200: '#dcd3ff',
+                            300: '#c3b1ff',
+                            400: '#a98eff',
+                            500: '#8f6bff',
+                            600: '#7645ff',
+                            700: '#6332e6',
+                            800: '#4f28b8',
+                            900: '#3c1e8a',
+                        },
+                        dark: {
+                            50: '#f7f7f8',
+                            100: '#eeeef0',
+                            200: '#d9d9dc',
+                            300: '#b8b8be',
+                            400: '#92929d',
+                            500: '#6f6f7c',
+                            600: '#555561',
+                            700: '#3d3d45',
+                            800: '#27272c',
+                            900: '#141416',
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        .broker-toggle.active {
-            background-color: var(--trading-accent);
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        input, select {
-            color: white;
+        
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .side-scroll::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        .side-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+        
+        .side-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        
+        .side-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-gradient {
+            background: linear-gradient(180deg, 
+                rgba(20, 20, 22, 0) 0%,
+                rgba(20, 20, 22, 0.8) 10%,
+                rgba(20, 20, 22, 1) 20%,
+                rgba(20, 20, 22, 1) 80%,
+                rgba(20, 20, 22, 0.8) 90%,
+                rgba(20, 20, 22, 0) 100%
+            );
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 144, 255, 0.2);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(0, 144, 255, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 144, 255, 0);
+            }
         }
     </style>
 </head>
-<body class="bg-trading-dark text-white min-h-screen">
+<body class="bg-dark-900 text-white min-h-screen">
     <!-- Navbar -->
-    <nav class="fixed top-0 w-full bg-trading-dark border-b border-trading-medium z-50">
+    <nav class="fixed top-0 w-full z-50 bg-dark-800/80 backdrop-blur-lg border-b border-dark-700">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <button id="menu-toggle" class="lg:hidden text-white">
+                    <button id="menu-toggle" class="lg:hidden text-dark-100 hover:text-primary-400 transition-colors">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <h1 class="text-xl font-bold">TradingPal 1.0</h1>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white"></i>
+                        </div>
+                        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-secondary-400">
+                            TradingPal
+                        </h1>
+                    </div>
                 </div>
+                
                 <div class="flex items-center space-x-4">
-                    <!-- Add Broker Toggle -->
-                    <div class="flex items-center bg-trading-medium rounded-lg p-1">
-                        <button id="oanda-toggle" class="px-4 py-2 rounded-lg transition-colors text-white broker-toggle active">
-                            Oanda
+                    <!-- Broker Toggle -->
+                    <div class="flex p-1 bg-dark-700/50 rounded-lg">
+                        <button id="oanda-toggle" 
+                                class="px-4 py-2 rounded-lg transition-all duration-300 text-white broker-toggle
+                                       disabled:opacity-50 disabled:cursor-not-allowed"
+                                data-broker="oanda">
+                            <div class="flex items-center space-x-2">
+                                <span>Oanda</span>
+                                <div class="connection-status w-2 h-2 rounded-full bg-red-500"></div>
+                            </div>
                         </button>
-                        <button id="alpaca-toggle" class="px-4 py-2 rounded-lg transition-colors text-white broker-toggle">
-                            Alpaca
+                        <button id="alpaca-toggle" 
+                                class="px-4 py-2 rounded-lg transition-all duration-300 text-white broker-toggle
+                                       disabled:opacity-50 disabled:cursor-not-allowed"
+                                data-broker="alpaca">
+                            <div class="flex items-center space-x-2">
+                                <span>Alpaca</span>
+                                <div class="connection-status w-2 h-2 rounded-full bg-red-500"></div>
+                            </div>
                         </button>
                     </div>
-                    <button id="backtest-btn" class="px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
+                    
+                    <!-- Action Buttons -->
+                    <button id="backtest-btn" class="px-4 py-2 rounded-lg font-medium transition-all duration-300
+                           bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600
+                           focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                         Backtest
                     </button>
-                    <button id="social-btn" class="px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
+                    <button id="social-btn" class="px-4 py-2 rounded-lg font-medium transition-all duration-300
+                           bg-gradient-to-r from-secondary-600 to-secondary-700 hover:from-secondary-500 hover:to-secondary-600
+                           focus:ring-2 focus:ring-secondary-500/20 focus:outline-none">
                         Social
                     </button>
                 </div>
@@ -65,120 +194,218 @@
     </nav>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-trading-dark border-r border-trading-medium transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-40">
-        <div class="flex flex-col h-full p-4">
-            <div class="flex-none">
-                <h2 class="text-lg font-semibold mb-4">Trading Assistant</h2>
-                <button id="new-chat-btn" class="w-full px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors mb-4"></button>
-                    New Chat
+    <aside id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-dark-800/80 backdrop-blur-lg
+                               border-r border-dark-700 transform -translate-x-full lg:translate-x-0 
+                               transition-transform duration-300 ease-in-out z-40">
+        <div class="flex flex-col h-full">
+            <!-- Chat Controls -->
+            <div class="flex-none p-4">
+                <button id="new-chat-btn" class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-300
+                       bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500
+                       focus:ring-2 focus:ring-primary-500/20 focus:outline-none group">
+                    <div class="flex items-center justify-center space-x-2">
+                        <i class="fas fa-plus-circle transition-transform group-hover:rotate-90 duration-300"></i>
+                        <span>New Chat</span>
+                    </div>
                 </button>
             </div>
 
-            <div class="flex-grow overflow-y-auto mb-4">
+            <!-- Chat History -->
+            <div class="flex-grow overflow-y-auto side-scroll p-4 space-y-2">
                 <div id="conversation-history" class="space-y-2">
-                    <!-- Conversation history will be added here -->
+                    <!-- Chat history items will be added here -->
                 </div>
             </div>
 
-            <div class="flex-none p-4 bg-trading-medium rounded-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-semibold">Account Details</h3>
-                    <button id="settings-btn" class="text-trading-accent hover:text-trading-hover">
-                        <i class="fas fa-cog"></i>
-                    </button>
+            <!-- Account Info -->
+            <div class="flex-none p-4">
+                <div class="glass-morphism rounded-xl p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-semibold text-primary-100 text-sm">Account</h3>
+                            <span id="broker-badge" class="px-2 py-0.5 text-xs rounded-full bg-primary-500/20 text-primary-300"></span>
+                        </div>
+                        <button id="settings-btn" class="text-primary-400 hover:text-primary-300 transition-colors">
+                            <i class="fas fa-cog text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="flex flex-col">
+                            <span class="text-dark-300 text-xs">Balance</span>
+                            <span id="user-balance" class="font-medium">--</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-dark-300 text-xs">P/L</span>
+                            <span id="user-pl" class="font-medium">--</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-dark-300 text-xs">Positions</span>
+                            <span id="user-open-positions" class="font-medium">--</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-dark-300 text-xs">Margin</span>
+                            <span id="user-available-margin" class="font-medium">--</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 pt-2 border-t border-dark-700">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-dark-400">Markets</span>
+                            <div class="flex space-x-1">
+                                <span class="market-badge" data-market="forex">FX</span>
+                                <span class="market-badge" data-market="crypto">CRYPTO</span>
+                                <span class="market-badge" data-market="stocks">STOCKS</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-2 text-sm">
-                    <p id="user-balance">Balance: --</p>
-                    <p id="user-leverage">Leverage: --</p>
-                    <p id="user-open-positions">Open Positions: --</p>
-                    <p id="user-open-trades">Open Trades: --</p>
-                    <p id="user-available-margin">Available Margin: --</p>
-                    <p id="user-pl">Profit/Loss: --</p>
-                </div>
-                <button class="w-full mt-4 px-4 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors">
-                    Upgrade Account
-                </button>
             </div>
         </div>
     </aside>
 
     <!-- Main Content -->
     <main class="lg:ml-64 pt-16 min-h-screen">
-        <div class="container mx-auto px-4 py-6">
+        <div class="container mx-auto p-4">
             <!-- Chat Container -->
             <div class="flex flex-col h-[calc(100vh-8rem)]">
-                <div id="chat-history" class="flex-grow overflow-y-auto mb-4 space-y-4 p-4">
+                <div id="chat-history" class="flex-grow overflow-y-auto side-scroll p-4 space-y-4 chat-gradient">
                     <!-- Chat messages will be added here -->
                 </div>
 
                 <!-- Chat Input -->
-                <div class="flex-none p-4 bg-trading-medium rounded-lg">
-                    <form id="chat-form" class="flex space-x-4">
-                        <textarea id="user-input" class="flex-grow p-3 bg-trading-dark rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-trading-accent" placeholder="Type your message here..." rows="2"></textarea>
-                        <button type="submit" class="px-6 py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors flex-none">
-                            Send
-                        </button>
-                    </form>
-                </div>
+                <div class="flex-none p-4">
+                    <div class="glass-morphism rounded-xl p-4">
+                        <form id="chat-form" class="flex space-x-4">
+                            <div class="flex-grow relative">
+                                <textarea id="user-input" 
+                                    class="w-full p-3 pr-10 bg-dark-800/50 rounded-xl resize-none
+                                           border border-dark-700 text-white placeholder-dark-400
+                                           focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 
+                                           focus:outline-none transition-all duration-300"
+                                    placeholder="Type your message here..."
+                                    rows="2"></textarea>
+                                <div class="absolute right-3 bottom-3 text-dark-400 text-sm">
+                                    Press Ctrl + Enter to send
+                                </div>
+                            </div>
+                            <button type="submit" 
+                                    class="flex-none px-6 py-3 rounded-xl font-medium transition-all duration-300
+                                           bg-gradient-to-r from-primary-600 to-secondary-600 
+                                           hover:from-primary-500 hover:to-secondary-500
+                                           focus:ring-2 focus:ring-primary-500/20 focus:outline-none
+                                           group">
+                                <div class="flex items-center space-x-2">
+                                    <span>Send</span>
+                                    <i class="fas fa-paper-plane transition-transform group-hover:translate-x-1"></i>
+                                </div>
+                            </button>
+                        </form>
 
-                <!-- Order Form (hidden by default) -->
-                <form id="order-parameters-form" class="hidden flex-none p-4 bg-trading-medium rounded-lg">
-                    <!-- Order form fields will be added here -->
-                </form>
+                        <!-- Order Form -->
+                        <form id="order-parameters-form" class="hidden space-y-4">
+                            <!-- Order form fields will be added here -->
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Loading Indicator -->
-    <div id="loading-indicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
-    </div>
-
-    <!-- Add Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-trading-medium rounded-lg p-6 max-w-md w-full mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Broker Settings</h2>
-                <button id="close-settings" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-dark-900/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-dark-800 rounded-xl p-6 max-w-md w-full mx-4 animate-slide-in flex flex-col space-y-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-secondary-400">
+                    Broker Settings
+                </h2>
+                <div class="flex space-x-2">
+                    <button id="edit-settings" type="button" class="text-primary-400 hover:text-primary-300 transition-colors">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button id="close-settings" class="text-dark-400 hover:text-dark-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-            
-            <form id="broker-settings-form" class="space-y-4">
+            <form id="broker-settings-form" class="flex flex-col space-y-4">
                 <div>
-                    <label class="block mb-2">Select Broker</label>
-                    <select id="broker-select" class="w-full p-2 bg-trading-dark rounded-lg">
+                    <label class="block mb-2 text-sm font-medium text-dark-200">Select Broker</label>
+                    <select id="broker-select" class="w-full p-3 bg-dark-700/50 rounded-xl border border-dark-600
+                                                    text-white focus:border-primary-500 focus:ring-2 
+                                                    focus:ring-primary-500/20 focus:outline-none transition-all duration-300">
                         <option value="oanda">Oanda</option>
                         <option value="alpaca">Alpaca</option>
                     </select>
                 </div>
                 
-                <div class="oanda-fields">
-                    <div class="mb-4">
-                        <label class="block mb-2">API Key</label>
-                        <input type="password" id="oanda-api-key" class="w-full p-2 bg-trading-dark rounded-lg">
+                <div class="oanda-fields space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-dark-200">API Key</label>
+                        <input type="password" id="oanda-api-key" 
+                               class="w-full p-3 bg-dark-700/50 rounded-xl border border-dark-600
+                                      text-white focus:border-primary-500 focus:ring-2
+                                      focus:ring-primary-500/20 focus:outline-none transition-all duration-300
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                               disabled>
                     </div>
-                    <div class="mb-4">
-                        <label class="block mb-2">Account ID</label>
-                        <input type="text" id="oanda-account-id" class="w-full p-2 bg-trading-dark rounded-lg">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-dark-200">Account ID</label>
+                        <input type="text" id="oanda-account-id"
+                               class="w-full p-3 bg-dark-700/50 rounded-xl border border-dark-600
+                                      text-white focus:border-primary-500 focus:ring-2
+                                      focus:ring-primary-500/20 focus:outline-none transition-all duration-300
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                               disabled>
                     </div>
                 </div>
                 
-                <div class="alpaca-fields hidden">
-                    <div class="mb-4">
-                        <label class="block mb-2">API Key</label>
-                        <input type="password" id="alpaca-api-key" class="w-full p-2 bg-trading-dark rounded-lg">
+                <div class="alpaca-fields hidden space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-dark-200">API Key</label>
+                        <input type="password" id="alpaca-api-key"
+                               class="w-full p-3 bg-dark-700/50 rounded-xl border border-dark-600
+                                      text-white focus:border-primary-500 focus:ring-2
+                                      focus:ring-primary-500/20 focus:outline-none transition-all duration-300
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                               disabled>
                     </div>
-                    <div class="mb-4">
-                        <label class="block mb-2">API Secret</label>
-                        <input type="password" id="alpaca-api-secret" class="w-full p-2 bg-trading-dark rounded-lg">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-dark-200">API Secret</label>
+                        <input type="password" id="alpaca-api-secret"
+                               class="w-full p-3 bg-dark-700/50 rounded-xl border border-dark-600
+                                      text-white focus:border-primary-500 focus:ring-2
+                                      focus:ring-primary-500/20 focus:outline-none transition-all duration-300
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                               disabled>
                     </div>
                 </div>
                 
-                <button type="submit" class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg">
-                    Save Settings
+                <button type="submit" 
+                        id="save-settings-btn"
+                        class="w-full py-3 px-4 rounded-xl font-medium transition-all duration-300
+                               bg-gradient-to-r from-primary-600 to-secondary-600 
+                               hover:from-primary-500 hover:to-secondary-500
+                               focus:ring-2 focus:ring-primary-500/20 focus:outline-none
+                               group">
+                    <div class="flex items-center justify-center space-x-2">
+                        <span>Save Settings</span>
+                        <i class="fas fa-check transition-transform group-hover:scale-110"></i>
+                    </div>
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="fixed inset-0 bg-dark-900/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="p-4 rounded-xl bg-dark-800/80 backdrop-blur-sm">
+            <div class="w-16 h-16 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 
+                        animate-spin flex items-center justify-center pulse-ring">
+                <div class="w-14 h-14 rounded-xl bg-dark-800 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-2xl text-primary-400"></i>
+                </div>
+            </div>
         </div>
     </div>
 

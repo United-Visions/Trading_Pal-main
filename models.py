@@ -39,15 +39,52 @@ class BrokerConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     broker_type = db.Column(db.String(20), nullable=False)  # 'oanda' or 'alpaca'
-    api_key = db.Column(db.String(255), nullable=False)
-    api_secret = db.Column(db.String(255))
-    account_id = db.Column(db.String(50))
-    paper_trading = db.Column(db.Boolean, default=True)
+    
+    # Oanda specific fields
+    oanda_api_key = db.Column(db.String(255))
+    oanda_account_id = db.Column(db.String(50))
+    oanda_environment = db.Column(db.String(20), default='practice')  # 'practice' or 'live'
+    
+    # Alpaca specific fields
+    alpaca_api_key = db.Column(db.String(255))
+    alpaca_api_secret = db.Column(db.String(255))
+    alpaca_paper_trading = db.Column(db.Boolean, default=True)
+     
+    # Common fields
+    supported_markets = db.Column(db.JSON)  # ['forex', 'crypto', 'stocks', 'options']
     is_active = db.Column(db.Boolean, default=True)
     connection_status = db.Column(db.String(20), default='disconnected')
     last_connection_check = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    # Backward compatibility properties
+    @property
+    def api_key(self):
+        return self.oanda_api_key if self.broker_type == 'oanda' else self.alpaca_api_key
+
+    @property
+    def api_secret(self):
+        return self.alpaca_api_secret if self.broker_type == 'alpaca' else None
+
+    @property
+    def account_id(self):
+        return self.oanda_account_id if self.broker_type == 'oanda' else None
+
+    def get_credentials(self):
+        """Get broker-specific credentials"""
+        if self.broker_type == 'oanda':
+            return {
+                'api_key': self.oanda_api_key,
+                'account_id': self.oanda_account_id,
+                'environment': self.oanda_environment
+            }
+        else:
+            return {
+                'api_key': self.alpaca_api_key,
+                'api_secret': self.alpaca_api_secret,
+                'paper_trading': self.alpaca_paper_trading
+            }
 
     __table_args__ = (
         db.UniqueConstraint('user_id', 'broker_type', name='unique_user_broker'),

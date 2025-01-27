@@ -6,128 +6,278 @@
     <title>TradingPal - Authentication</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'trading-dark': '#141414',
-                        'trading-medium': '#272727',
-                        'trading-light': '#353535',
-                        'trading-accent': '#4e69a2',
-                        'trading-hover': '#3b528b'
+                        primary: {
+                            50: '#f0f7ff',
+                            100: '#e0f0ff', 
+                            200: '#b9e0ff',
+                            300: '#7cc5ff',
+                            400: '#36a9ff',
+                            500: '#0090ff',
+                            600: '#0070cc',
+                            700: '#005299',
+                            800: '#003666',
+                            900: '#001a33',
+                        },
+                        secondary: {
+                            50: '#f5f3ff',
+                            100: '#ede8ff',
+                            200: '#dcd3ff',
+                            300: '#c3b1ff',
+                            400: '#a98eff',
+                            500: '#8f6bff',
+                            600: '#7645ff',
+                            700: '#6332e6',
+                            800: '#4f28b8',
+                            900: '#3c1e8a',
+                        },
+                        dark: {
+                            50: '#f7f7f8',
+                            100: '#eeeef0',
+                            200: '#d9d9dc',
+                            300: '#b8b8be',
+                            400: '#92929d',
+                            500: '#6f6f7c',
+                            600: '#555561',
+                            700: '#3d3d45',
+                            800: '#27272c',
+                            900: '#141416',
+                        }
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        .form-hidden {
-            display: none;
+        .form-hidden { display: none; }
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        body {
-            background-color: #141414;
+        .animate-gradient {
+            background: linear-gradient(90deg, #0090ff, #8f6bff, #0090ff);
+            background-size: 200% 200%;
+            animation: gradient 8s linear infinite;
         }
-        input {
-            color: white;
+        .input-transition {
+            transition: all 0.3s ease;
+        }
+        .input-transition:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 144, 255, 0.1);
+        }
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(143, 107, 255, 0.2);
         }
     </style>
 </head>
-<body class="bg-trading-dark text-white min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-trading-medium rounded-lg p-8 shadow-lg border border-trading-light">
-            <h1 class="text-2xl font-bold text-center mb-8 text-white">Welcome to TradingPal</h1>
+<body class="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <!-- Animated background elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-500/10 rounded-full filter blur-3xl animate-pulse-slow delay-1000"></div>
+        </div>
+
+        <div class="container max-w-md w-full">
+            <!-- Logo and Title -->
+            <div class="text-center mb-8 animate-float">
+                <div class="inline-block p-4 rounded-2xl glass-morphism mb-4">
+                    <img src="/api/placeholder/64/64" alt="TradingPal Logo" class="w-16 h-16" />
+                </div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-secondary-400">
+                    Welcome to TradingPal
+                </h1>
+            </div>
 
             <!-- Login Form -->
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block mb-2 text-white">Email</label>
-                    <input type="email" id="loginEmail" required
-                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
-                </div>
-                <div>
-                    <label for="loginPassword" class="block mb-2 text-white">Password</label>
-                    <input type="password" id="loginPassword" required
-                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
-                </div>
-                <button type="submit" 
-                        class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors text-white">
-                    Login
-                </button>
-                <p class="text-center text-white">
-                    Don't have an account? 
-                    <a href="#" id="showRegister" class="text-trading-accent hover:text-trading-hover">Register</a>
-                </p>
-            </form>
+            <div class="glass-morphism rounded-2xl p-8 shadow-xl">
+                <form id="loginForm" class="space-y-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="loginEmail" class="block text-sm font-medium text-primary-100 mb-1">Email</label>
+                            <input type="email" id="loginEmail" required
+                                   class="w-full px-4 py-3 rounded-xl bg-dark-800/50 border border-dark-700 text-white
+                                          placeholder-dark-400 input-transition focus:border-primary-500 focus:ring-2 
+                                          focus:ring-primary-500/20 focus:outline-none">
+                        </div>
+                        <div>
+                            <label for="loginPassword" class="block text-sm font-medium text-primary-100 mb-1">Password</label>
+                            <input type="password" id="loginPassword" required
+                                   class="w-full px-4 py-3 rounded-xl bg-dark-800/50 border border-dark-700 text-white
+                                          placeholder-dark-400 input-transition focus:border-primary-500 focus:ring-2
+                                          focus:ring-primary-500/20 focus:outline-none">
+                        </div>
+                    </div>
 
-            <!-- Register Form -->
-            <form id="registerForm" class="space-y-4 form-hidden">
-                <div>
-                    <label for="registerEmail" class="block mb-2 text-white">Email</label>
-                    <input type="email" id="registerEmail" required
-                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
-                </div>
-                <div>
-                    <label for="registerUsername" class="block mb-2 text-white">Username</label>
-                    <input type="text" id="registerUsername" required
-                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
-                </div>
-                <div>
-                    <label for="registerPassword" class="block mb-2 text-white">Password</label>
-                    <input type="password" id="registerPassword" required
-                           class="w-full p-2 bg-trading-dark rounded-lg border border-trading-light focus:outline-none focus:border-trading-accent">
-                </div>
-                <button type="submit" 
-                        class="w-full py-2 bg-trading-accent hover:bg-trading-hover rounded-lg transition-colors text-white">
-                    Register
-                </button>
-                <p class="text-center text-white">
-                    Already have an account? 
-                    <a href="#" id="showLogin" class="text-trading-accent hover:text-trading-hover">Login</a>
-                </p>
-            </form>
+                    <button type="submit" 
+                            class="w-full py-3 px-4 rounded-xl font-medium text-white animate-gradient
+                                   btn-hover focus:outline-none focus:ring-2 focus:ring-primary-500/20">
+                        Sign In
+                    </button>
+
+                    <p class="text-center text-dark-300 text-sm">
+                        Don't have an account? 
+                        <a href="#" id="showRegister" 
+                           class="text-primary-400 hover:text-primary-300 transition-colors">
+                            Register
+                        </a>
+                    </p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" class="space-y-6 form-hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="registerEmail" class="block text-sm font-medium text-primary-100 mb-1">Email</label>
+                            <input type="email" id="registerEmail" required
+                                   class="w-full px-4 py-3 rounded-xl bg-dark-800/50 border border-dark-700 text-white
+                                          placeholder-dark-400 input-transition focus:border-primary-500 focus:ring-2
+                                          focus:ring-primary-500/20 focus:outline-none">
+                        </div>
+                        <div>
+                            <label for="registerUsername" class="block text-sm font-medium text-primary-100 mb-1">Username</label>
+                            <input type="text" id="registerUsername" required
+                                   class="w-full px-4 py-3 rounded-xl bg-dark-800/50 border border-dark-700 text-white
+                                          placeholder-dark-400 input-transition focus:border-primary-500 focus:ring-2
+                                          focus:ring-primary-500/20 focus:outline-none">
+                        </div>
+                        <div>
+                            <label for="registerPassword" class="block text-sm font-medium text-primary-100 mb-1">Password</label>
+                            <input type="password" id="registerPassword" required
+                                   class="w-full px-4 py-3 rounded-xl bg-dark-800/50 border border-dark-700 text-white
+                                          placeholder-dark-400 input-transition focus:border-primary-500 focus:ring-2
+                                          focus:ring-primary-500/20 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full py-3 px-4 rounded-xl font-medium text-white animate-gradient
+                                   btn-hover focus:outline-none focus:ring-2 focus:ring-primary-500/20">
+                        Create Account
+                    </button>
+
+                    <p class="text-center text-dark-300 text-sm">
+                        Already have an account? 
+                        <a href="#" id="showLogin"
+                           class="text-primary-400 hover:text-primary-300 transition-colors">
+                            Sign In
+                        </a>
+                    </p>
+                </form>
+            </div>
         </div>
     </div>
 
     <script>
+        // Debug logging utility
+        const logger = {
+            log: (message, data = null) => {
+                console.log(`[Auth] ${message}`, data || '');
+            },
+            error: (message, error = null) => {
+                console.error(`[Auth Error] ${message}`, error || '');
+            }
+        };
+
         document.getElementById('showRegister').addEventListener('click', (e) => {
             e.preventDefault();
+            logger.log('Switching to registration form');
             document.getElementById('loginForm').classList.add('form-hidden');
             document.getElementById('registerForm').classList.remove('form-hidden');
         });
 
         document.getElementById('showLogin').addEventListener('click', (e) => {
             e.preventDefault();
+            logger.log('Switching to login form');
             document.getElementById('registerForm').classList.add('form-hidden');
             document.getElementById('loginForm').classList.remove('form-hidden');
         });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            logger.log('Attempting login', { email });
+
             try {
-                const response = await axios.post('/auth/login', {
-                    email: document.getElementById('loginEmail').value,
-                    password: document.getElementById('loginPassword').value
-                });
-                window.location.href = response.data.redirect;
+                const data = { email, password };
+                logger.log('Sending login request', data);
+
+                const response = await axios.post('/auth/login', data);
+                logger.log('Login response received', response.data);
+
+                if (response.data.redirect) {
+                    logger.log('Redirecting to:', response.data.redirect);
+                    window.location.href = response.data.redirect;
+                }
             } catch (error) {
-                alert(error.response?.data?.error || 'Login failed');
+                logger.error('Login failed', error);
+                const errorMessage = error.response?.data?.error || 'Login failed';
+                alert(errorMessage);
             }
         });
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+
+            logger.log('Attempting registration', { email, username });
+
             try {
-                const response = await axios.post('/auth/register', {
-                    email: document.getElementById('registerEmail').value,
-                    username: document.getElementById('registerUsername').value,
-                    password: document.getElementById('registerPassword').value
-                });
-                window.location.href = response.data.redirect;
+                const data = { email, username, password };
+                logger.log('Sending registration request', data);
+
+                const response = await axios.post('/auth/register', data);
+                logger.log('Registration response received', response.data);
+
+                if (response.data.redirect) {
+                    logger.log('Redirecting to:', response.data.redirect);
+                    window.location.href = response.data.redirect;
+                }
             } catch (error) {
-                alert(error.response?.data?.error || 'Registration failed');
+                logger.error('Registration failed', error);
+                const errorMessage = error.response?.data?.error || 'Registration failed';
+                alert(errorMessage);
             }
         });
+
+        // Debug initialization log
+        logger.log('Auth page initialized');
     </script>
 </body>
 </html>

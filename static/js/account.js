@@ -1,17 +1,19 @@
 class AccountManager {
     constructor() {
-        this.balanceElement = document.getElementById('user-balance');
-        this.leverageElement = document.getElementById('user-leverage');
-        this.positionsElement = document.getElementById('user-open-positions');
-        this.tradesElement = document.getElementById('user-open-trades');
-        this.marginElement = document.getElementById('user-available-margin');
-        this.plElement = document.getElementById('user-pl');
+        this.accountElements = {
+            balance: document.getElementById('user-balance'),
+            leverage: document.getElementById('user-leverage'),
+            positions: document.getElementById('user-open-positions'),
+            trades: document.getElementById('user-open-trades'),
+            margin: document.getElementById('user-available-margin'),
+            pl: document.getElementById('user-pl')
+        };
         
-        // Initialize broker toggle handlers
+        // Initialize broker toggles with animation support
         this.brokerToggles = document.querySelectorAll('.broker-toggle');
         this.currentBroker = localStorage.getItem('selectedBroker') || 'oanda';
         
-        // Initialize settings modal
+        // Settings modal elements
         this.settingsModal = document.getElementById('settings-modal');
         this.settingsBtn = document.getElementById('settings-btn');
         this.closeSettingsBtn = document.getElementById('close-settings');
@@ -19,18 +21,14 @@ class AccountManager {
         this.initializeEventListeners();
         this.loadAccountDetails();
         
-        // Set up auto-refresh every 30 seconds
+        // Auto-refresh with fade transition
         setInterval(() => this.loadAccountDetails(), 30000);
         
-        // Add session check
         this.checkSession();
-        
-        // Check session every minute
         setInterval(() => this.checkSession(), 60000);
     }
 
     initializeEventListeners() {
-        // Broker toggle listeners
         this.brokerToggles.forEach(toggle => {
             toggle.addEventListener('click', () => {
                 const broker = toggle.id.split('-')[0];
@@ -38,41 +36,87 @@ class AccountManager {
             });
         });
 
-        // Settings modal listeners
         this.settingsBtn.addEventListener('click', () => {
-            this.settingsModal.classList.remove('hidden');
-            this.settingsModal.classList.add('flex');
+            gsap.to(this.settingsModal, {
+                display: 'flex',
+                opacity: 1,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
         });
 
-        this.closeSettingsBtn.addEventListener('click', () => {
-            this.settingsModal.classList.add('hidden');
-            this.settingsModal.classList.remove('flex');
-        });
-
-        // Close modal when clicking outside
+        this.closeSettingsBtn.addEventListener('click', () => this.hideSettingsModal());
+        
         this.settingsModal.addEventListener('click', (e) => {
-            if (e.target === this.settingsModal) {
-                this.settingsModal.classList.add('hidden');
-                this.settingsModal.classList.remove('flex');
+            if (e.target === this.settingsModal) this.hideSettingsModal();
+        });
+    }
+
+    hideSettingsModal() {
+        gsap.to(this.settingsModal, {
+            opacity: 0,
+            duration: 0.3,
+            ease: 'power2.in',
+            onComplete: () => {
+                this.settingsModal.style.display = 'none';
             }
         });
+    }
+
+    showLoading() {
+        const loadingIndicator = document.getElementById('account-loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.classList.remove('hidden');
+        }
+    }
+
+    hideLoading() {
+        const loadingIndicator = document.getElementById('account-loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.classList.add('hidden');
+        }
     }
 
     async switchBroker(broker) {
         if (broker !== this.currentBroker) {
-            this.currentBroker = broker;
-            localStorage.setItem('selectedBroker', broker);
-            this.updateBrokerToggle();
-            await this.loadAccountDetails();
+            this.showLoading();
+            try {
+                // Update UI first
+                this.updateBrokerBadge(broker);
+                this.clearAccountDetails();
+
+                // Switch broker and load new details
+                this.currentBroker = broker;
+                localStorage.setItem('selectedBroker', broker);
+                await this.loadAccountDetails();
+
+                // Update broker toggle states
+                this.updateBrokerToggles();
+
+            } catch (error) {
+                console.error('Error switching broker:', error);
+                this.showError('Failed to switch broker');
+            } finally {
+                this.hideLoading();
+            }
         }
     }
 
-    updateBrokerToggle() {
-        this.brokerToggles.forEach(toggle => {
-            toggle.classList.remove('active', 'bg-trading-accent');
-            if (toggle.id.includes(this.currentBroker)) {
-                toggle.classList.add('active', 'bg-trading-accent');
-            }
+    updateBrokerBadge(broker) {
+        const badge = document.getElementById('broker-badge');
+        if (badge) {
+            badge.textContent = broker.toUpperCase();
+            badge.className = `px-2 py-0.5 text-xs rounded-full ${
+                broker === 'oanda' ? 
+                'bg-primary-500/20 text-primary-300' : 
+                'bg-secondary-500/20 text-secondary-300'
+            }`;
+        }
+    }
+
+    clearAccountDetails() {
+        Object.values(this.accountElements).forEach(el => {
+            if (el) el.textContent = '--';
         });
     }
 
@@ -88,13 +132,13 @@ class AccountManager {
             this.updateAccountDisplay(data.account);
             
         } catch (error) {
-            console.error('Failed to load account details:', error);
-            
-            // Check if configuration is needed
             if (error.response?.data?.need_configuration) {
                 this.displayError('Please configure your broker settings');
-                this.settingsModal.classList.remove('hidden');
-                this.settingsModal.classList.add('flex');
+                gsap.to(this.settingsModal, {
+                    display: 'flex',
+                    opacity: 1,
+                    duration: 0.3
+                });
             } else {
                 this.displayError(error.response?.data?.error || 'Failed to load account details');
             }
@@ -102,35 +146,58 @@ class AccountManager {
     }
 
     updateAccountDisplay(data) {
-        if (data) {
-            this.balanceElement.textContent = `Balance: ${parseFloat(data.balance).toFixed(2)} USD`;
-            this.leverageElement.textContent = `Leverage: ${data.marginRate || 'N/A'}`;
-            this.positionsElement.textContent = `Open Positions: ${data.openPositionCount || 0}`;
-            this.tradesElement.textContent = `Open Trades: ${data.openTradeCount || 0}`;
-            this.marginElement.textContent = `Available Margin: ${parseFloat(data.marginAvailable).toFixed(2)} USD`;
-            this.plElement.textContent = `Profit/Loss: ${parseFloat(data.pl).toFixed(2)} USD`;
-        }
+        if (!data) return;
+
+        const updateElement = (element, value, prefix = '', suffix = '') => {
+            const currentValue = parseFloat(element.textContent.split(' ')[1]) || 0;
+            const parsedValue = parseFloat(value);
+            if (isNaN(parsedValue)) {
+                element.textContent = `${prefix}--${suffix}`;
+                return;
+            }
+            gsap.to({value: currentValue}, {
+                value: parsedValue,
+                duration: 1,
+                ease: 'power2.out',
+                onUpdate: function() {
+                    element.textContent = `${prefix}${this.targets()[0].value.toFixed(2)}${suffix}`;
+                }
+            });
+        };
+
+        updateElement(this.accountElements.balance, data.balance, 'Balance: ', ' USD');
+        updateElement(this.accountElements.leverage, data.marginRate || 0, 'Leverage: ', 'x');
+        
+        gsap.to(this.accountElements.positions, {
+            textContent: `Open Positions: ${data.openPositionCount || 0}`,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+        
+        gsap.to(this.accountElements.trades, {
+            textContent: `Open Trades: ${data.openTradeCount || 0}`,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+        
+        updateElement(this.accountElements.margin, data.marginAvailable, 'Available Margin: ', ' USD');
+        updateElement(this.accountElements.pl, data.pl, 'Profit/Loss: ', ' USD');
     }
 
     async checkSession() {
         try {
             const response = await axios.get('/auth/session/check');
             if (response.data.authenticated) {
-                // Update broker selection if needed
                 if (response.data.selected_broker) {
                     this.currentBroker = response.data.selected_broker;
                     localStorage.setItem('selectedBroker', this.currentBroker);
                     this.updateBrokerToggle();
                 }
-                
-                // Reload account details
                 await this.loadAccountDetails();
             } else {
-                // Redirect to login if session expired
                 window.location.href = '/auth/login';
             }
         } catch (error) {
-            console.error('Session check failed:', error);
             if (error.response?.status === 401) {
                 window.location.href = '/auth/login';
             }
@@ -138,18 +205,21 @@ class AccountManager {
     }
 
     displayError(message) {
-        this.balanceElement.textContent = 'Balance: --';
-        this.leverageElement.textContent = 'Leverage: --';
-        this.positionsElement.textContent = 'Open Positions: --';
-        this.tradesElement.textContent = 'Open Trades: --';
-        this.marginElement.textContent = 'Available Margin: --';
-        this.plElement.textContent = 'Profit/Loss: --';
+        // Safely clear account values first
+        if (this.accountElements) {
+            Object.values(this.accountElements).forEach(element => {
+                if (element && element.textContent) {
+                    const label = element.textContent.split(':')[0] || '';
+                    element.textContent = label ? `${label}: --` : '--';
+                }
+            });
+        }
         
+        // Show error notification
         const notification = document.createElement('div');
         notification.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
         notification.textContent = message;
         document.body.appendChild(notification);
-        
         setTimeout(() => notification.remove(), 5000);
     }
 }
