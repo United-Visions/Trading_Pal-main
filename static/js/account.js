@@ -227,7 +227,14 @@ class AccountManager {
 // Initialize account manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.accountManager = new AccountManager();
+    window.accountManagerInitialized = true;
+    if (window.userConfigManager) {
+        window.userConfigManager.loadBrokerSettingsOnStartup();
+    }
 });
+    
+    if (window.userConfigManager) {
+    }
 
 // Make loadAccountDetails available globally for broker toggle
 window.loadAccountDetails = () => window.accountManager.loadAccountDetails();

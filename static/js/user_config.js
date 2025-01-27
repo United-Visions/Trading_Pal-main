@@ -44,11 +44,12 @@ class UserConfigManager {
         // Set initial state
         this.updateBrokerToggle();
         
-        // Load settings on startup
-        this.loadBrokerSettings();
-        
         this.isInitialized = true;
         console.log('UserConfigManager initialized');
+    }
+    
+    loadBrokerSettingsOnStartup() {
+        this.loadBrokerSettings();
     }
 
     initializeEventListeners() {
@@ -163,12 +164,9 @@ class UserConfigManager {
             
             // Update market badges
             this.updateMarketBadges(settings);
-            
-            // Update broker status indicators
-            Object.entries(settings).forEach(([broker, config]) => {
-                this.updateBrokerStatus(broker, config.status);
-            });
-            
+            if (window.accountManager && window.accountManagerInitialized) {
+                window.accountManager.updateBrokerToggles();
+            }
         } catch (error) {
             console.error('Failed to load broker settings:', error);
             this.showError('Failed to load broker settings');
@@ -381,6 +379,7 @@ class UserConfigManager {
 // Initialize user config manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.userConfigManager = new UserConfigManager();
+    window.userConfigManager.loadBrokerSettingsOnStartup();
 });
 
 // Export for global access

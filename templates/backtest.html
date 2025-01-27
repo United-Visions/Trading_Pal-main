@@ -263,19 +263,22 @@
                                                      text-white focus:border-primary-500 focus:ring-2 
                                                      focus:ring-primary-500/20 focus:outline-none transition-all 
                                                      duration-300 code-editor font-mono text-sm"></textarea>
-                                    <div class="absolute top-2 right-2 flex space-x-2">
-                                        <button type="button" class="p-2 rounded-lg bg-dark-700/50 text-dark-400 hover:text-primary-400 transition-colors">
+                                    
+                                </div>
+                                <p class="text-sm text-dark-400">Write your trading strategy logic using Python.</p>
+                            </div>
+                            <div class="flex justify-end space-x-2 mt-2">
+                            <button type="button" class="p-2 rounded-lg bg-dark-700/50 text-dark-400 hover:text-primary-400 transition-colors">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                         <button type="button" class="p-2 rounded-lg bg-dark-700/50 text-dark-400 hover:text-primary-400 transition-colors">
                                             <i class="fas fa-expand"></i>
                                         </button>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-dark-400">Write your trading strategy logic using Python.</p>
+                                        <button type="button" id="aiAgentBtn" class="p-2 rounded-lg bg-dark-700/50 text-dark-400 hover:text-primary-400 transition-colors">
+                                            <i class="fas fa-robot"></i>
+                                        </button>
                             </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-dark-200">Currency Pair</label>
                                     <input type="text" id="currencyPair" required
@@ -291,6 +294,16 @@
                                                   text-white focus:border-primary-500 focus:ring-2 
                                                   focus:ring-primary-500/20 focus:outline-none transition-all duration-300"
                                            placeholder="e.g. 1h, 4h, 1d">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-dark-200">Indicator</label>
+                                    <select id="indicatorSelect"
+                                            class="w-full p-3 bg-dark-800/50 rounded-xl border border-dark-700 
+                                                   text-white focus:border-primary-500 focus:ring-2 
+                                                   focus:ring-primary-500/20 focus:outline-none transition-all duration-300">
+                                        <option value="">Select Indicator</option>
+                                        <!-- Options will be added here -->
+                                    </select>
                                 </div>
                             </div>
 
