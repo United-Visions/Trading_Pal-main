@@ -5,7 +5,7 @@ import configparser
 import traceback
 import os
 import json
-from models import BacktestResult, BrokerConfig, Strategy, db, User, Conversation, Review, Comment
+from models import BacktestResult, BrokerConfig, Strategy, db, User, Conversation, Review, Comment, Indicator
 from datetime import datetime
 import requests
 from oandapyV20 import API
@@ -477,9 +477,8 @@ def initialize_user_brokers():
         # Store broker factory in Flask's g object to persist during request
         if not hasattr(g, 'broker_factory'):
             g.broker_factory = BrokerFactory()
-            
         # Initialize brokers if not already done
-        if not g.broker_factory.brokers:
+        if hasattr(g, 'broker_factory') and not g.broker_factory.brokers:
             active_configs = BrokerConfig.query.filter_by(
                 user_id=current_user.id,
                 is_active=True
@@ -501,7 +500,6 @@ def save_strategy():
     strategy_database.append(data)
     print("[save_strategy] Strategy saved successfully.")
     return jsonify(success=True)
-
 
 @app.route('/search_strategies', methods=['POST'])
 def search_strategies():
@@ -527,6 +525,17 @@ def backtest_strategy():
         print(f"[backtest_strategy] Loading historical data for {data['currencyPair']}")
         df = load_historical_data(data['currencyPair'], data['timeFrame'], 5000)
         print(f"[backtest_strategy] Loaded {len(df)} candles of historical data")
+
+        # Load indicator if selected
+        if data.get('indicator'):
+            indicator = Indicator.query.filter_by(name=data['indicator']).first()
+            if indicator:
+                print(f"[backtest_strategy] Applying indicator: {indicator.name}")
+                globals_dict = {"df": df}
+                exec(indicator.calculation_code, globals_dict)
+                df = globals_dict.get("df", df)
+            else:
+                print(f"[backtest_strategy] Indicator not found: {data['indicator']}")
 
         # Execute strategy code
         print("[backtest_strategy] Executing strategy code")
@@ -582,10 +591,31 @@ def backtest_strategy():
         print(f"[backtest_strategy] Traceback:\n{error_trace}")
         return jsonify({
             "error": str(e),
+            "error": str(e),
             "traceback": error_trace,
             "backtestResults": None,
             "analysis": None
         }), 500
+
+@app.route('/api/v1/indicators', methods=['GET'])
+def get_indicators():
+    """Endpoint to retrieve all indicators from the database"""
+    try:
+        indicators = Indicator.query.all()
+        indicator_list = [
+            {
+                "id": indicator.id,
+                "name": indicator.name,
+                "description": indicator.description,
+                "parameters": indicator.parameters,
+            }
+            for indicator in indicators
+        ]
+        return jsonify(indicator_list)
+    except Exception as e:
+        print(f"[get_indicators] ERROR: {str(e)}")
+        print(f"[get_indicators] Traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve indicators"}), 500
 
 @app.route('/backtest')
 def backtest_page():
@@ -653,9 +683,6 @@ def not_found_error(error):
 def internal_server_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
-
-
-# Add these database helper functions after the configurations
 def save_conversation_to_db(user_message, assistant_response, broker_name=None):
     """Save conversation to database with error logging"""
     print("[save_conversation_to_db] Saving new conversation")
@@ -725,17 +752,6 @@ def store_conversation():
     """Store conversation endpoint with detailed logging"""
     print("[store_conversation] Received new conversation storage request")
     try:
-        data = request.get_json()
-        print(f"[store_conversation] Received data: {json.dumps(data, indent=2)}")
-
-        # Handle both single and batch conversation formats
-        if 'conversation_data' in data:
-            for conv in data['conversation_data']:
-                save_conversation_to_db(conv['content'], conv['response'])
-        else:
-            save_conversation_to_db(data['message'], data['response'])
-
-        print("[store_conversation] Successfully stored conversation")
         return jsonify({'success': True, 'message': 'Conversation stored successfully'})
 
     except Exception as e:
@@ -748,10 +764,92 @@ def store_conversation():
             'traceback': error_trace
         }), 500
 
+@app.route('/api/v1/querystrategyagent', methods=['POST'])
+@login_required
+def query_strategy_agent():
+    """
+    Endpoint to handle code generation requests using the Gemini AI agent.
+    """
+    # Check if the user is authenticated
+    if not current_user.is_authenticated:
+        return jsonify({"error": "User not authenticated"}), 401
+
+    data = request.get_json()
+    user_prompt = data.get('prompt')
+
+    if not user_prompt:
+        return jsonify({"error": "Prompt not provided"}), 400
+
+    try:
+        system_prompt = f"""
+You are an expert trading strategy and indicator coding assistant.
+You are integrated into the TradingPal backtesting platform.
+Users will provide requests in natural language through a web interface.
+Your task is to generate or modify Python code for trading strategies or indicators based on user requests.
+
+**Important Instructions:**
+
+1. **Generate Valid Python Code:** Ensure the generated code is syntactically correct, executable Python code.
+2. **Follow Coding Standards:** Adhere to PEP 8 style guidelines for code formatting.
+3. **Use Existing Functions:** Utilize the available indicator calculation functions from `indicators.py` (e.g., `calculate_rsi`, `calculate_macd`, etc.) whenever possible.
+4. **Provide Complete Code:** Generate complete code snippets that can be directly copied and pasted into the strategy code editor.
+5. **Handle Errors Gracefully:** If the user's request is unclear or cannot be fulfilled, provide a helpful error message instead of generating invalid code.
+6. **Focus on Code Generation:** Your primary role is to generate code. Avoid providing explanations or commentary unless specifically requested by the user.
+7. **Available functions:** You have access to the following functions in `indicators.py` for calculating technical indicators:
+    - `calculate_rsi(series, window)`
+    - `calculate_macd(series, window_fast, window_slow, window_signal)`
+    - `calculate_bollinger_bands(series, window)`
+    - `calculate_atr(high, low, close, window)`
+    - `calculate_adx(high, low, close, window)`
+    - `calculate_obv(close, volume)`
+    - `load_all_indicators()`
+    - `save_indicator_to_db(name, description, calculation_code, parameters)`
+
+    **Example Interaction:**
+
+    User: "Create a strategy that buys when the RSI is below 30 and sells when it's above 70. Use a 14-day window for RSI."
+
+    Assistant:
+    ```python
+    import pandas as pd
+    from indicators import calculate_rsi
+
+    def strategy(df):
+        # Calculate RSI with a 14-day window
+        df['rsi'] = calculate_rsi(df['close'], 14)
+
+        # Generate trading signals
+        df['signal'] = 0  # Initialize signal column
+        df.loc[df['rsi'] < 30, 'signal'] = 1  # Buy signal
+        df.loc[df['rsi'] > 70, 'signal'] = -1  # Sell signal
+
+        return df
+    ```
+    """
+        messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+        ]
+        ai_response = get_gemini_response(messages)
+
+        print(f"[query_strategy_agent] Received prompt: {user_prompt}")
+        print(f"[query_strategy_agent] AI response: {ai_response}")
+
+        return jsonify({"response": ai_response})
+
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print(f"[query_strategy_agent] ERROR: {str(e)}")
+        print(f"[query_strategy_agent] Traceback:\n{error_trace}")
+        return jsonify({
+            "error": "An error occurred while processing your request.",
+            "traceback": error_trace
+        }), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.register_blueprint(auth_bp)
     app.register_blueprint(trading_bp)
-    app.register_blueprint(user_config_bp)  # Add this line
+    app.register_blueprint(user_config_bp)
     app.run(port=5000, debug=True)

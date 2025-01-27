@@ -187,3 +187,15 @@ class Comment(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) 
     content = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Indicator(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(500))
+    calculation_code = db.Column(db.Text, nullable=False)  # Python code for calculation
+    parameters = db.Column(db.JSON)  # JSON representation of parameters
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Indicator {self.name}>"

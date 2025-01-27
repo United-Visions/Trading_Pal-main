@@ -8,13 +8,45 @@ class BacktestManager {
             searchInput: document.getElementById('searchStrategies'),
             loadingIndicator: document.getElementById('loading-indicator'),
             plotContainer: document.getElementById('plot-container'),
-            strategyCode: document.getElementById('strategyCode')
+            strategyCode: document.getElementById('strategyCode'),
+            indicatorSelect: document.getElementById('indicatorSelect')
         };
-        
+
         this.setupEventListeners();
         this.loadSavedStrategies();
         this.loadStrategyFromLocalStorage();
         this.initializeCodeEditor();
+        this.loadIndicators();
+        this.setupAiAgentButton();
+    }
+
+    setupAiAgentButton() {
+        const aiAgentBtn = document.getElementById('aiAgentBtn');
+
+        aiAgentBtn.addEventListener('click', async () => {
+            const strategyCode = this.elements.strategyCode.value;
+            if (!strategyCode) {
+                this.showNotification('Please enter your strategy code.', 'error');
+                return;
+            }
+    
+            this.showNotification('Sending code to AI agent for processing...', 'info');
+    
+            try {
+                const response = await axios.post('/api/v1/querystrategyagent', { prompt: strategyCode });
+                const data = response.data;
+    
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+    
+                // Update the strategy code editor with the AI's response
+                this.elements.strategyCode.value = data.response;
+                this.showNotification('AI response received and code updated.', 'success');
+            } catch (error) {
+                this.showNotification(error.message, 'error');
+            }
+        });
     }
 
     setupEventListeners() {
@@ -80,7 +112,8 @@ class BacktestManager {
             authorName: this.elements.strategyForm.querySelector('#authorName').value,
             strategyCode: this.elements.strategyCode.value,
             currencyPair: this.elements.strategyForm.querySelector('#currencyPair').value,
-            timeFrame: this.elements.strategyForm.querySelector('#timeFrame').value
+            timeFrame: this.elements.strategyForm.querySelector('#timeFrame').value,
+            indicator: this.elements.indicatorSelect.value
         };
 
         this.showLoadingIndicator();
@@ -102,6 +135,37 @@ class BacktestManager {
         } finally {
             this.hideLoadingIndicator();
         }
+    }
+    
+    validateForm() {
+        let isValid = true;
+        const requiredFields = ['strategyName', 'authorName', 'strategyCode', 'currencyPair', 'timeFrame'];
+    
+        requiredFields.forEach(fieldId => {
+            const field = this.elements.strategyForm.querySelector(`#${fieldId}`);
+            if (!field.value.trim()) {
+                isValid = false;
+                this.highlightInvalidField(field);
+            } else {
+                this.resetFieldValidation(field);
+            }
+        });
+    
+        return isValid;
+    }
+    
+    highlightInvalidField(field) {
+        gsap.to(field, {
+            borderColor: 'rgba(239, 68, 68, 0.5)',
+            duration: 0.3
+        });
+    }
+    
+    resetFieldValidation(field) {
+        gsap.to(field, {
+            borderColor: 'rgba(0, 144, 255, 0.5)',
+            duration: 0.3
+        });
     }
 
     async displayResults(data) {
@@ -169,7 +233,7 @@ class BacktestManager {
             <h3 class="text-sm font-medium text-dark-300 mb-1">${this.formatMetricName(key)}</h3>
             <div class="flex items-center space-x-2">
                 <span class="text-2xl font-bold ${this.getMetricColor(key, value)}">${formattedValue}</span>
-                ${trend ? `<i class="fas ${trend.icon} text-${trend.color}-500"></i>` : ''}
+                ${trend ? `<i class="fas ${trend.icon} text-${trend.color}-500"></i>` : ""}
             </div>
         `;
         
@@ -374,6 +438,29 @@ class BacktestManager {
                 this.elements.loadingIndicator.style.display = 'none';
             }
         });
+    }
+
+    async loadIndicators() {
+        try {
+            const response = await axios.get('/api/v1/indicators');
+            const indicators = response.data;
+            
+            indicators.forEach(indicator => {
+                const option = document.createElement('option');
+                option.value = indicator.name;
+                option.textContent = indicator.name;
+                this.elements.indicatorSelect.appendChild(option);
+            });
+        } catch (error) {
+            this.showNotification('Failed to load indicators', 'error');
+        }
+    }
+    
+    loadStrategyFromLocalStorage() {
+        const strategyCode = localStorage.getItem('strategyCode');
+        if (strategyCode) {
+            this.elements.strategyCode.value = strategyCode;
+        }
     }
 }
 
