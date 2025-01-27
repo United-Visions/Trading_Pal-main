@@ -26,15 +26,15 @@ The TradingPal backtesting system is undergoing several enhancements to improve 
 
 | Feature                 | Status        | Notes                                                                                                                                      |
 | :---------------------- | :------------ | :----------------------------------------------------------------------------------------------------------------------------------------- |
-| `indicators.py` Refactor | To Do         | Integrate database model, repurpose for loading/saving indicators.                                                                        |
-| Indicator Dropdown      | To Do         | Implement dropdown list in UI.                                                                                                             |
-| Gemini AI Agent         | To Do         | Create agent to process user requests for trading strategies and indicators.                                                               |
+| `indicators.py` Refactor | Complete      | Integrated database model, repurposed for loading/saving indicators.                                                                        |
+| Indicator Dropdown      | Complete      | Implemented dropdown list in UI.                                                                                                             |
+| Gemini AI Agent         | In Progress   | Created agent to process user requests for trading strategies and indicators.                                                               |
 | Sidebar/Side Updates    | To Do         | Display strategies/indicators, add toggle for switching views.                                                                              |
-| Trading Strategy Data   | To Do         | Include strategy name, author, code, currency pair, timeframe, backtest results.                                                            |
-| Backtesting Enhancements | To Do         | Allow re-backtesting with different parameters, display results in popup, enable access to results from sidebar.                           |
+| Trading Strategy Data   | In Progress   | Includes strategy name, author, code, currency pair, timeframe, backtest results.                                                            |
+| Backtesting Enhancements | In Progress   | Allows re-backtesting with different parameters, displays results in a basic format, needs popup and sidebar access.                           |
 | Oanda Integration       | In Progress   | Maintain existing integration.                                                                                                             |
 | `trading.md`            | In Progress   | Create and update this document to track changes, status, and to-do list.                                                                   |
-| Database Model          | To Do         |  the indicators.py indicators with a database model to store indicators, allowing for future expansion. and repurpose indicators .py |
+| Database Model          | Complete      |  The indicators.py indicators are stored in a database model, allowing for future expansion. and repurpose indicators .py |
 
 ## Gemini AI Agent Integration Status
 
@@ -60,7 +60,7 @@ The Gemini AI agent integration for code generation is partially complete. Here'
 -   **Agent Logic:**
     -   The agent's logic for understanding user requests and generating code is still under development. The current implementation uses a basic prompt and doesn't fully utilize the available context or functions.
 -   **Response Handling:**
-    -   The `backtest.js` code currently receives the response from the agent but doesn't yet update the strategy code editor with the generated code.
+    -   The `backtest.js` code now updates the strategy code editor with the generated code.
 -   **Error Handling:**
     -   Error handling is basic and needs to be improved to handle various error scenarios gracefully.
 -   **Testing:**
@@ -101,10 +101,10 @@ The Gemini AI agent integration for code generation is partially complete. Here'
     -   [x] Create a popup modal with a textarea for interacting with the agent.
 -   [x] **Update `backtest.js`:**
     -   [x] Add a click event listener to the new button to display the modal.
-    -   [ ] Implement functionality to send user input from the modal's textarea to `/api/v1/querystrategyagent`.
+    -   [x] Implement functionality to send user input from the modal's textarea to `/api/v1/querystrategyagent`.
         -   [x] Add code to retrieve authentication token from local storage.
         -   [x] Send the prompt to `/api/v1/querystrategyagent` with the token in the headers.
-    -   [ ] Handle the response from the agent and update the strategy code editor accordingly.
+    -   [x] Handle the response from the agent and update the strategy code editor accordingly.
 -   [ ] **Update Sidebar/Side Section:**
     -   [ ] Modify `backtest.html` to include a toggle for switching between strategies and indicators.
     -   [ ] Update `backtest.js` to dynamically display strategies or indicators based on the toggle state.
