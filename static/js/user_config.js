@@ -38,14 +38,25 @@ class UserConfigManager {
     }
 
     initialize() {
-        // Initialize event listeners
+        console.group('UserConfigManager Initialization');
+        console.log('Starting initialization...');
+        console.log('DOM Elements loaded:', {
+            settingsModal: !!this.settingsModal,
+            settingsBtn: !!this.settingsBtn,
+            brokerSelect: !!this.brokerSelect,
+            brokerToggles: this.brokerToggles.length
+        });
+
         this.initializeEventListeners();
-        
-        // Set initial state
         this.updateBrokerToggle();
         
         this.isInitialized = true;
-        console.log('UserConfigManager initialized');
+        console.log('Initial state:', {
+            currentBroker: this.currentBroker,
+            isInitialized: this.isInitialized,
+            activeBrokers: Array.from(this.activeBrokers)
+        });
+        console.groupEnd();
     }
     
     loadBrokerSettingsOnStartup() {
@@ -144,34 +155,70 @@ class UserConfigManager {
     }
 
     async loadBrokerSettings() {
-        console.log('Loading broker settings');
+        console.group('Loading Broker Settings');
+        console.time('brokerSettingsLoad');
+        console.log('Current broker:', this.currentBroker);
+        
         this.showLoading();
         
         try {
+            console.log('Fetching settings from server...');
             const response = await axios.get('/api/v1/broker/settings');
+            console.log('Server response:', response.data);
+            
             const settings = response.data.settings;
             
-            // Update fields for both brokers
+            // Log available brokers
+            console.log('Available broker settings:', Object.keys(settings));
+            
+            // Update OANDA fields
             if (settings.oanda) {
+                console.log('Updating OANDA fields...');
                 document.getElementById('oanda-api-key').value = settings.oanda.api_key;
                 document.getElementById('oanda-account-id').value = settings.oanda.account_id;
+                console.log('OANDA fields updated successfully');
+            } else {
+                console.warn('No OANDA settings found');
             }
             
+            // Update Alpaca fields
             if (settings.alpaca) {
+                console.log('Updating Alpaca fields...');
                 document.getElementById('alpaca-api-key').value = settings.alpaca.api_key;
                 document.getElementById('alpaca-api-secret').value = settings.alpaca.api_secret;
+                console.log('Alpaca fields updated successfully');
+            } else {
+                console.warn('No Alpaca settings found');
             }
             
             // Update market badges
+            console.log('Updating market badges...');
             this.updateMarketBadges(settings);
-            if (window.accountManager && window.accountManagerInitialized) {
-                window.accountManager.updateBrokerToggles();
+            
+            // Update account manager
+            if (window.accountManager && typeof window.accountManager.updateBrokerToggles === 'function') {
+                console.log('Updating account manager toggles...');
+                try {
+                    await window.accountManager.updateBrokerToggles();
+                    console.log('Account manager toggles updated successfully');
+                } catch (err) {
+                    console.error('Failed to update account manager:', err);
+                }
+            } else {
+                console.warn('Account manager not available or missing updateBrokerToggles method');
             }
+            
         } catch (error) {
-            console.error('Failed to load broker settings:', error);
+            console.error('Failed to load broker settings:', {
+                error: error,
+                message: error.message,
+                response: error.response?.data
+            });
             this.showError('Failed to load broker settings');
         } finally {
             this.hideLoading();
+            console.timeEnd('brokerSettingsLoad');
+            console.groupEnd();
         }
     }
 
@@ -255,16 +302,25 @@ class UserConfigManager {
             this.currentBroker = broker;
             localStorage.setItem('selectedBroker', broker);
             this.updateBrokerToggle();
-            await this.reloadAccountDetails();
+            
+            // Use AccountManager if available
+            if (window.accountManager) {
+                try {
+                    await window.accountManager.switchBroker(broker);
+                } catch (error) {
+                    console.error('Error in AccountManager.switchBroker:', error);
+                }
+            }
+            
+            await this.loadBrokerSettings();
         }
     }
 
     updateBrokerToggle() {
         this.brokerToggles.forEach(toggle => {
-            toggle.classList.remove('active', 'bg-trading-accent');
-            if (toggle.id.includes(this.currentBroker)) {
-                toggle.classList.add('active', 'bg-trading-accent');
-            }
+            const broker = toggle.id.split('-')[0];
+            toggle.classList.toggle('active', broker === this.currentBroker);
+            toggle.classList.toggle('bg-trading-accent', broker === this.currentBroker);
         });
     }
 

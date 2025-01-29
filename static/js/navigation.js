@@ -2,12 +2,13 @@ class NavigationManager {
     constructor() {
         this.menuToggle = document.getElementById('menu-toggle');
         this.sidebar = document.getElementById('sidebar');
-        this.socialBtn = document.getElementById('social-btn');
-        this.backtestBtn = document.getElementById('backtest-btn');
-        this.mainBtn = document.getElementById('main-btn');
+        this.chartsTab = document.getElementById('charts-tab');
+        this.chartsContainer = document.getElementById('charts-container');
+        this.closeChartsBtn = document.getElementById('close-charts');
         
         this.setupEventListeners();
         this.setupResizeHandler();
+        this.setupChartHandlers();
     }
 
     setupEventListeners() {
@@ -15,16 +16,8 @@ class NavigationManager {
             this.menuToggle.addEventListener('click', () => this.toggleSidebar());
         }
 
-        if (this.socialBtn) {
-            this.socialBtn.addEventListener('click', () => this.navigate('/social'));
-        }
-
-        if (this.backtestBtn) {
-            this.backtestBtn.addEventListener('click', () => this.navigate('/backtest'));
-        }
-
-        if (this.mainBtn) {
-            this.mainBtn.addEventListener('click', () => this.navigate('/'));
+        if (this.chartsTab) {
+            this.chartsTab.addEventListener('click', () => this.toggleChartsView());
         }
 
         document.addEventListener('click', (e) => this.handleOutsideClick(e));
@@ -84,8 +77,61 @@ class NavigationManager {
             }, 250);
         });
     }
+
+    setupChartHandlers() {
+        const chartsTab = document.getElementById('charts-tab');
+        const chartsContainer = document.getElementById('charts-container');
+        const closeChartsBtn = document.getElementById('close-charts');
+
+        if (chartsTab) {
+            chartsTab.addEventListener('click', () => {
+                console.log('Charts tab clicked');  // Debug log
+                const container = document.getElementById('charts-container');
+                const currentWidth = container.style.width;
+                
+                if (currentWidth === '0px' || !currentWidth) {
+                    container.style.width = '50%';
+                    if (window.chartManager) {
+                        window.chartManager.refreshCharts?.();
+                    }
+                } else {
+                    container.style.width = '0px';
+                }
+            });
+        }
+
+        if (closeChartsBtn) {
+            closeChartsBtn.addEventListener('click', () => {
+                console.log('Close charts clicked');  // Debug log
+                chartsContainer.style.width = '0px';
+            });
+        }
+    }
+
+    toggleChartsView() {
+        if (this.chartsContainer.classList.contains('w-0')) {
+            this.openChartsView();
+        } else {
+            this.closeChartsView();
+        }
+    }
+
+    openChartsView() {
+        // Use a more modest default width
+        this.chartsContainer.style.width = '400px';
+        // Trigger chart refresh
+        if (window.chartManager) {
+            window.chartManager.updateChart();
+        }
+    }
+
+    closeChartsView() {
+        this.chartsContainer.classList.remove('w-[600px]');
+        this.chartsContainer.classList.add('w-0');
+    }
 }
 
+// Initialize navigation
 document.addEventListener('DOMContentLoaded', () => {
     window.navigationManager = new NavigationManager();
 });

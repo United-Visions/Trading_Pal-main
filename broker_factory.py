@@ -1,3 +1,4 @@
+from flask import config
 from oanda_broker import OandaBroker
 from alpaca_broker import AlpacaBroker
 import configparser
@@ -93,27 +94,15 @@ class BrokerFactory:
             return False
 
     def get_broker(self, broker_type=None):
-        """Get a specific broker or the current broker"""
-        try:
-            if not self.brokers:
-                raise ValueError("No brokers initialized. Please configure broker credentials.")
-                
-            if broker_type and broker_type in self.brokers:
-                return self.brokers[broker_type]
-                
-            if self.current_broker and self.current_broker in self.brokers:
-                return self.brokers[self.current_broker]
-                
-            # Default to first available broker
-            first_broker = next(iter(self.brokers.values()))
-            if first_broker:
-                return first_broker
-                
-            raise ValueError("No available brokers found")
-            
-        except Exception as e:
-            print(f"Error getting broker: {e}")
-            raise
+        """Get appropriate broker based on type or first available"""
+        # Use current_broker if no specific type requested
+        broker_type = broker_type or self.current_broker
+        
+        if broker_type and broker_type in self.brokers:
+            return self.brokers[broker_type]
+        elif self.brokers:
+            return next(iter(self.brokers.values()))
+        raise ValueError("No brokers initialized. Please configure broker credentials.")
 
     def test_broker_connection(self, broker_type, api_key, api_secret=None, account_id=None):
         """Test broker connection before saving credentials"""

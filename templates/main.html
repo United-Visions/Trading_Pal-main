@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -135,6 +136,8 @@
         }
     </style>
 </head>
+<!-- Add to main.html head section -->
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 <body class="bg-dark-900 text-white min-h-screen">
     <!-- Navbar -->
     <nav class="fixed top-0 w-full z-50 bg-dark-800/80 backdrop-blur-lg border-b border-dark-700">
@@ -176,22 +179,20 @@
                             </div>
                         </button>
                     </div>
-                    
-                    <!-- Action Buttons -->
-                    <button id="backtest-btn" class="px-4 py-2 rounded-lg font-medium transition-all duration-300
-                           bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600
-                           focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
-                        Backtest
-                    </button>
-                    <button id="social-btn" class="px-4 py-2 rounded-lg font-medium transition-all duration-300
-                           bg-gradient-to-r from-secondary-600 to-secondary-700 hover:from-secondary-500 hover:to-secondary-600
-                           focus:ring-2 focus:ring-secondary-500/20 focus:outline-none">
-                        Social
-                    </button>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- Add Charts Tab -->
+    <div class="fixed right-0 top-1/2 transform -translate-y-1/2 z-40">
+        <button id="charts-tab" 
+                class="bg-dark-800 text-white px-6 py-3 rounded-l-lg shadow-lg 
+                       hover:bg-dark-700 transition-all duration-300 
+                       border-l border-t border-b border-dark-700">
+            <span class="text-sm font-medium">Charts</span>
+        </button>
+    </div>
 
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-dark-800/80 backdrop-blur-lg
@@ -410,10 +411,22 @@
     </div>
 
     <!-- Load JavaScript files -->
-    <script src="{{ url_for('static', filename='js/user_config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/account.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user_config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/orders.js') }}"></script>
+    {% include 'charts_components/charts_container.html' %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="{{ url_for('static', filename='js/charts_view.js') }}"></script>
+    <script>
+        // Ensure ChartManager is initialized
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing ChartManager');
+            if (!window.chartManager) {
+                window.chartManager = new ChartManager();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -10,6 +10,7 @@ class ChatManager {
             orderForm: document.getElementById('order-parameters-form')
         };
         
+        this.conversationHistory = [];
         this.initializeEventListeners();
         this.loadConversationHistory();
     }
@@ -45,61 +46,82 @@ class ChatManager {
 
     async handleSubmit(e) {
         e.preventDefault();
-        const userText = this.sanitize(this.elements.userInput.value);
-        this.elements.userInput.value = '';
-        gsap.to(this.elements.userInput, {
-            height: 'auto',
-            duration: 0.2
-        });
-
-        if (!userText.trim()) return;
-
-        this.addMessage(userText, 'user');
-        this.showLoadingIndicator();
+        const message = this.elements.userInput.value.trim();
+        if (!message) return;
 
         try {
-            const response = await axios.post('/api/v1/query', {
-                message: userText
-            });
+            this.showLoadingIndicator();
+            console.log('[ChatManager] Sending message:', message);
+            
+            const selectedBroker = localStorage.getItem('selectedBroker') || 'oanda';
+            console.log('[ChatManager] Using broker:', selectedBroker);
+            
+            // Format conversation history
+            const recentHistory = this.conversationHistory
+                .slice(-5)
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+
+            const response = await axios.post('/api/v1/query', 
+                { 
+                    message: message,
+                    conversation_history: recentHistory
+                },
+                { 
+                    headers: {
+                        'X-Selected-Broker': selectedBroker,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
 
             if (response.data.error) {
-                this.addMessage(`Error: ${response.data.error}`, 'assistant');
-                return;
+                throw new Error(response.data.error);
             }
 
-            const assistantText = this.sanitize(response.data.response);
-            this.addMessage(assistantText, 'assistant');
+            // Add message to history
+            this.conversationHistory.push({
+                role: "user",
+                content: message
+            });
 
-            if (response.data.redirect === '/backtest' && response.data.data?.strategy) {
-                const strategyData = response.data.data.strategy;
-                localStorage.setItem('strategyData', JSON.stringify(strategyData));
-                this.addMessage('Redirecting to backtest page...', 'system');
-                
-                gsap.to(this.elements.chatHistory, {
-                    opacity: 0,
-                    y: -20,
-                    duration: 0.3,
-                    onComplete: () => {
-                        window.location.href = '/backtest';
-                    }
-                });
-            }
+            // Add response to history
+            this.conversationHistory.push({
+                role: "assistant",
+                content: response.data.response
+            });
 
-            if (response.data.action === 'create_order') {
-                gsap.to(this.elements.chatForm, {
-                    display: 'none',
-                    duration: 0.3
-                });
-                window.orderManager.show();
-            }
-
-            await this.saveConversation(userText, assistantText);
-
+            // Display messages
+            this.addMessage(message, 'user');
+            this.addMessage(response.data.response, 'assistant');
+            
+            // Save conversation
+            await this.saveConversation(message, response.data.response);
+            
         } catch (error) {
-            console.error('Error:', error);
-            this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+            console.error('[ChatManager] Error:', error);
+            const errorMessage = error.response?.data?.error || error.message;
+            
+            if (error.response?.data?.need_configuration) {
+                if (window.userConfigManager) {
+                    this.addMessage(
+                        `I noticed your ${localStorage.getItem('selectedBroker')} broker isn't configured yet. ` +
+                        `Let's set that up now.`, 'assistant'
+                    );
+                    window.userConfigManager.showModal();
+                }
+            } else {
+                this.addMessage(`Sorry, I encountered an error: ${errorMessage}`, 'assistant');
+            }
         } finally {
             this.hideLoadingIndicator();
+            this.elements.userInput.value = '';
+            gsap.to(this.elements.userInput, {
+                height: 'auto',
+                duration: 0.2
+            });
         }
     }
 

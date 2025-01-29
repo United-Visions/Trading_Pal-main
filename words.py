@@ -361,14 +361,6 @@ endpoint_phrases = {
         "get instrument candles", "fetch instrument candles",
         "get candles for an instrument", "fetch candles for an instrument",
         "get candlestick data for an instrument", "fetch candlestick data for an instrument"
-    ],
-    "create_trading_strategy": [
-        "create a trading strategy", "build a trading strategy", "develop a trading strategy",
-        "design a trading strategy", "generate a trading strategy", "formulate a trading strategy",
-        "construct a trading strategy", "initiate a trading strategy", "start a trading strategy",
-        "create a strategy", "build a strategy", "develop a strategy", "design a strategy",
-        "generate a strategy", "formulate a strategy", "construct a strategy", "initiate a strategy",
-        "start a strategy"
     ]
 }   
 intents = {
