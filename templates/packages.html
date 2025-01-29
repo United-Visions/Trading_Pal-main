@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Up</title>
+    <style>
+        /* Styles go here */
+        body {
+            background-color: #282828;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #packages {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .package, .signup-form {
+            background-color: #3c3c3c;
+            border-radius: 10px;
+            padding: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .package {
+            height: 300px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .package:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .package h2 {
+            margin: 0;
+        }
+
+        .package p {
+            text-align: center;
+        }
+
+        .package button {
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            color: #fff;
+            background-color: #3c3c3c;
+            cursor: pointer;
+        }
+
+        .signup-form {
+            display: none;
+        }
+
+        .signup-form h2 {
+            margin: 0 0 20px 0;
+        }
+
+        .signup-form label {
+            margin: 5px 0;
+        }
+
+        .signup-form input {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .signup-form button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3c3c3c;
+            color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="packages">
+        <div class="package" onclick="selectPackage('early access')">
+            <h2>Early Access</h2>
+            <p>Get early access to new features and improvements.</p>
+            <button>Select</button>
+        </div>
+
+        <div class="package" onclick="selectPackage('basic')">
+            <h2>Basic</h2>
+            <p>Access to all basic features and functionality.</p>
+            <button>Select</button>
+        </div>
+
+        <div class="package" onclick="selectPackage('premium')">
+            <h2>Premium</h2>
+            <p>Get all features, priority support, and more.</p>
+            <button>Select</button>
+        </div>
+    </div>
+
+    <form id="signup-form" class="signup-form" onsubmit="submitForm(event)">
+        <h2>Sign Up</h2>
+        <label for="username">Username</label>
+        <input type="text" id="username" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" required>
+        <label for="broker-api">Broker API</label>
+        <input type="text" id="broker-api">
+        <label for="oanda-account-id">OANDA Account ID</label>
+        <input type="text" id="oanda-account-id">
+        <label for="openai-api-key">OpenAI API Key</label>
+        <input type="text" id="openai-api-key">
+        <label for="trading-preferences">Trading Preferences</label>
+        <input type="text" id="trading-preferences">
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <script>
+        function selectPackage(package) {
+            // Save the selected package to local storage so we can use it in the next page
+            localStorage.setItem('selectedPackage', package);
+            // Hide the packages and show the signup form
+            document.getElementById('packages').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'flex';
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const package = localStorage.getItem('selectedPackage');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const brokerApi = document.getElementById('broker-api').value;
+            const oandaAccountId = document.getElementById('oanda-account-id').value;
+            const openaiApiKey = document.getElementById('openai-api-key').value;
+            const tradingPreferences = document.getElementById('trading-preferences').value;
+
+            const response = await fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    package,
+                    broker_api: brokerApi,
+                    oanda_account_id: oandaAccountId,
+                    openai_api_key: openaiApiKey,
+                    trading_preferences: tradingPreferences,
+                }),
+            });
+
+            const data = await response.json();
+            if (data.message === 'Registered successfully') {
+                // Redirect to the login page
+                window.location.href = '/login';
+            } else {
+                // Handle error
+                alert(data.message);
+            }
+        }
+    </script>
+</body>
+</html>

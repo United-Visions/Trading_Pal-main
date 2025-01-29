@@ -1,4 +1,3 @@
-
 # Define the phrases for each endpoint
 endpoint_phrases = {
     "create_order": [

@@ -1,0 +1,134 @@
+<div id="charts-container" 
+     class="fixed inset-y-0 right-0 w-0 bg-dark-800 transition-all duration-300 ease-in-out overflow-hidden z-50 border-l border-dark-700">
+    <div class="h-full flex flex-col">
+        <!-- Header -->
+        <div class="flex-none p-4 border-b border-dark-700">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Live Charts</h2>
+                <div class="flex space-x-2">
+                    <button id="expand-charts" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button id="close-charts" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex flex-col space-y-4 mt-4">
+                <!-- Market Selection -->
+                <div class="flex space-x-4">
+                    <button id="forexTab" class="flex-1 px-4 py-2 bg-blue-600 rounded-lg text-white flex items-center justify-center space-x-2">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Forex</span>
+                    </button>
+                    <button id="cryptoTab" class="flex-1 px-4 py-2 bg-gray-700 rounded-lg text-white flex items-center justify-center space-x-2">
+                        <i class="fab fa-bitcoin"></i>
+                        <span>Crypto</span>
+                    </button>
+                </div>
+
+                <!-- Pair & Timeframe Selection -->
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="pairSelect" class="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2 text-white">
+                        <option value="">Select Pair</option>
+                    </select>
+                    
+                    <select id="timeframeSelect" class="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2 text-white">
+                        <option value="1h">1 Hour</option>
+                        <option value="4h">4 Hours</option>
+                        <option value="1d">1 Day</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Area with Loading State -->
+        <div class="flex-grow overflow-hidden p-4 relative">
+            <div id="activeChart" class="w-full h-full rounded-lg overflow-hidden bg-dark-700/50">
+                <canvas id="chartCanvas" class="w-full h-full"></canvas>
+                <!-- Loading Spinner -->
+                <div id="chart-loading" class="absolute inset-0 flex items-center justify-center bg-dark-800/80 hidden">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add connection status indicator -->
+    <div id="feed-status" class="absolute top-4 right-4 flex items-center space-x-2">
+        <div class="feed-indicator w-2 h-2 rounded-full bg-red-500"></div>
+        <span class="text-xs text-gray-400">Feed Status</span>
+    </div>
+
+    <!-- Add error message display -->
+    <div id="feed-error" class="hidden absolute top-16 right-4 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+        Connection error, retrying...
+    </div>
+</div>
+
+<!-- Fullscreen Chart Modal -->
+<div id="fullscreen-chart" class="fixed inset-0 bg-dark-900/95 hidden z-[60]">
+    <div class="absolute inset-4 rounded-xl bg-dark-800 p-4 flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="fullscreen-title" class="text-xl font-bold"></h3>
+            <button id="exit-fullscreen" class="text-gray-400 hover:text-white">
+                <i class="fas fa-compress"></i>
+            </button>
+        </div>
+        <div id="fullscreen-chart-container" class="flex-grow"></div>
+    </div>
+</div>
+
+<!-- Add before the closing </head> tag -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-crosshair"></script>
+
+<script>
+    // Make API key available to ChartManager
+    window.POLYGON_API_KEY = "{{ POLYGON_API_KEY }}";
+    
+    // Add data server configuration
+    window.DATA_SERVER_URL = 'http://localhost:4000';
+    
+    // Make sure Chart.js is loaded before initializing
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.Chart) {
+            console.error('Chart.js not loaded');
+            return;
+        }
+        
+        try {
+            window.chartManager = new ChartManager();
+            // Initialize feed status as disconnected
+            updateFeedStatus(false);
+        } catch (error) {
+            console.error('Failed to initialize ChartManager:', error);
+        }
+    });
+
+    // Update feed status indicators
+    function updateFeedStatus(connected) {
+        const indicator = document.querySelector('.feed-indicator');
+        const errorMsg = document.getElementById('feed-error');
+        
+        if (connected) {
+            indicator.classList.remove('bg-red-500');
+            indicator.classList.add('bg-green-500');
+            errorMsg.classList.add('hidden');
+        } else {
+            indicator.classList.remove('bg-green-500');
+            indicator.classList.add('bg-red-500');
+            errorMsg.classList.remove('hidden');
+        }
+    }
+
+    // Ensure proper cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (window.chartManager) {
+            window.chartManager.cleanup();
+        }
+    });
+</script>

@@ -1,0 +1,90 @@
+2025-01-29 07:04:11,288 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:4000
+2025-01-29 07:04:11,289 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-29 07:04:11,290 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:04:11,394 - websocket - INFO - Websocket connected
+2025-01-29 07:04:11,396 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:04:11,396 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:04:11,397 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:04:11,397 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:04:11,398 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:04:11,552 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:04:11,572 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:04:11,813 - websocket - INFO - Websocket connected
+2025-01-29 07:04:11,813 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:04:11,813 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:04:11,813 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:04:11,814 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:04:11,814 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:04:13,485 - polygon_feed - ERROR - Error saving feed data: Expecting value: line 1 column 1 (char 0)
+2025-01-29 07:04:14,014 - polygon_feed - INFO - WebSocket closed: 1008 - 
+2025-01-29 07:04:42,699 - werkzeug - INFO -  * Detected change in '/workspaces/Trading_Pal-main/main.py', reloading
+2025-01-29 07:04:42,731 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:04:42,950 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:04:42,950 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:04:43,016 - websocket - INFO - Websocket connected
+2025-01-29 07:04:43,016 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:04:43,017 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:04:43,017 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:04:43,017 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:04:43,017 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:06:30,440 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:4000
+2025-01-29 07:06:30,441 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-29 07:06:30,441 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:06:30,527 - websocket - INFO - Websocket connected
+2025-01-29 07:06:30,528 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:06:30,528 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:06:30,529 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:06:30,529 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:06:30,530 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:06:30,669 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:06:30,669 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:06:30,749 - websocket - INFO - Websocket connected
+2025-01-29 07:06:30,750 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:06:30,750 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:06:30,750 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:06:30,750 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:06:30,751 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:06:31,686 - polygon_feed - ERROR - Error saving feed data: Expecting value: line 1 column 1 (char 0)
+2025-01-29 07:06:35,014 - polygon_feed - INFO - WebSocket closed: 1008 - 
+2025-01-29 07:08:10,037 - werkzeug - INFO -  * Detected change in '/workspaces/Trading_Pal-main/data_server.py', reloading
+2025-01-29 07:08:10,066 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:08:10,280 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:08:10,280 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:08:10,523 - websocket - INFO - Websocket connected
+2025-01-29 07:08:10,523 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:08:11,524 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:08:11,524 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:08:11,524 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:08:11,525 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:15:38,964 - werkzeug - INFO -  * Detected change in '/workspaces/Trading_Pal-main/main.py', reloading
+2025-01-29 07:15:39,010 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:15:39,364 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:15:39,365 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:15:39,444 - websocket - INFO - Websocket connected
+2025-01-29 07:15:39,445 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:15:40,445 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:15:40,446 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:15:40,446 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:15:40,446 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:19:40,260 - werkzeug - INFO -  * Detected change in '/workspaces/Trading_Pal-main/main.py', reloading
+2025-01-29 07:19:40,357 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:19:40,727 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:19:40,727 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:19:40,808 - websocket - INFO - Websocket connected
+2025-01-29 07:19:40,809 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:19:41,810 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:19:41,810 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:19:41,811 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:19:41,811 - polygon_feed - INFO - Subscribed to crypto ETH-USD
+2025-01-29 07:23:39,646 - werkzeug - INFO -  * Detected change in '/workspaces/Trading_Pal-main/main.py', reloading
+2025-01-29 07:23:39,674 - werkzeug - INFO -  * Restarting with stat
+2025-01-29 07:23:39,890 - werkzeug - WARNING -  * Debugger is active!
+2025-01-29 07:23:39,891 - werkzeug - INFO -  * Debugger PIN: 170-980-003
+2025-01-29 07:23:39,984 - websocket - INFO - Websocket connected
+2025-01-29 07:23:39,984 - polygon_feed - INFO - WebSocket connection established
+2025-01-29 07:23:40,985 - polygon_feed - INFO - Subscribed to forex EUR-USD
+2025-01-29 07:23:40,986 - polygon_feed - INFO - Subscribed to forex GBP-USD
+2025-01-29 07:23:40,986 - polygon_feed - INFO - Subscribed to crypto BTC-USD
+2025-01-29 07:23:40,986 - polygon_feed - INFO - Subscribed to crypto ETH-USD
