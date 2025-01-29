@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+import pandas as pd
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
@@ -20,7 +21,6 @@ class User(UserMixin, db.Model):
     broker_configs = db.relationship('BrokerConfig', backref='user', lazy=True, cascade='all, delete-orphan')
     trading_preferences = db.relationship('TradingPreferences', backref='user', lazy=True, uselist=False)
     conversations = db.relationship('Conversation', backref='user', lazy=True, cascade='all, delete-orphan')
-    strategies = db.relationship('Strategy', backref='user', lazy=True, cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def set_password(self, password):
@@ -147,46 +147,6 @@ class Conversation(db.Model):
     response = db.Column(db.String(500), nullable=False)
     broker_context = db.Column(db.String(20))  # Track which broker was active
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Strategy(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(500))
-    is_private = db.Column(db.Boolean, default=True)
-    algo_code = db.Column(db.Text)
-    currency_pair = db.Column(db.String(50))
-    time_frame = db.Column(db.String(50))
-    broker_type = db.Column(db.String(20))  # Strategy specific to broker
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    
-    backtest_results = db.relationship('BacktestResult', backref='strategy', lazy=True, cascade='all, delete-orphan')
-    reviews = db.relationship('Review', backref='strategy', lazy=True, cascade='all, delete-orphan')
-    comments = db.relationship('Comment', backref='strategy', lazy=True, cascade='all, delete-orphan')
-
-class BacktestResult(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    strategy_id = db.Column(db.Integer, db.ForeignKey('strategy.id'), nullable=False)
-    broker_type = db.Column(db.String(20))
-    results = db.Column(db.Text)
-    analysis = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Review(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    strategy_id = db.Column(db.Integer, db.ForeignKey('strategy.id'), nullable=False)
-    reviewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    stars = db.Column(db.Integer)
-    content = db.Column(db.String(500))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Comment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    strategy_id = db.Column(db.Integer, db.ForeignKey('strategy.id'), nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) 
-    content = db.Column(db.String(500))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Indicator(db.Model):
     id = db.Column(db.Integer, primary_key=True)

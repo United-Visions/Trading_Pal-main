@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, request, jsonify, render_template, redirect, session, url_for
 from flask_cors import CORS
 import google.generativeai as genai
@@ -5,21 +6,32 @@ import configparser
 import traceback
 import os
 import json
-from models import BacktestResult, BrokerConfig, Strategy, db, User, Conversation, Review, Comment, Indicator
-from datetime import datetime
+import logging
+from models import  BrokerConfig, db, User, Conversation
 import requests
 from oandapyV20 import API
 from oandapyV20.exceptions import V20Error
 from oandapyV20.endpoints.instruments import InstrumentsCandles
-from indicators import calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_atr, calculate_adx, calculate_obv
 from tools import ToolRegistry
 from words import endpoint_phrases, trading_keywords
 from oanda_broker import OandaBroker
-from trading import load_historical_data, trading_bp
+from trading import load_historical_data
 from broker_factory import BrokerFactory
 from flask_login import login_required, current_user, LoginManager
 from auth import auth_bp
 from user_config import user_config_bp
+from utils import get_gemini_response
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('main.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -39,7 +51,7 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # API and model configurations
 genai.configure(api_key=config.get('API_KEYS', 'GEMINI_API_KEY'))
@@ -51,10 +63,7 @@ api = API(access_token=OANDA_API_KEY)
 # Replace broker initialization with broker factory
 broker_factory = BrokerFactory()
 
-INDICATORS_DIRECTORY = "indicators_directory"
 
-# Initialize strategy database
-strategy_database = []
 
 # Function definitions
 def get_account_details(broker_name=None):
@@ -65,25 +74,25 @@ def get_account_details(broker_name=None):
         broker, broker_name = broker_factory.get_broker()
     return broker.get_account_details()
 
-def create_order(account_id, order_data):
+def create_order(account_id=None, order_data=None):
+    """Enhanced order creation with broker context"""
     try:
-        broker, broker_name = get_broker_for_request()
+        broker = g.broker_factory.get_broker()
         order_response = broker.create_order(order_data)
-        message = f"Successfully created order. Response from broker: {order_response}"
-        messages = [
-            {"role": "user", "content": "create order"},
-            {"role": "assistant", "content": message}
-        ]
-        assistant_response = get_gemini_response(messages)
-        return assistant_response, order_response
+        
+        # Include broker context in response
+        response_data = {
+            "order": order_response,
+            "broker_used": broker.name,
+            "broker_status": g.broker_factory.get_broker_status(broker.name),
+            "account_id": account_id
+        }
+        
+        return response_data
+        
     except Exception as err:
-        error_message = f"Failed to create order. Error: {err}"
-        messages = [
-            {"role": "user", "content": "create order"},
-            {"role": "assistant", "content": error_message}
-        ]
-        assistant_response = get_gemini_response(messages)
-        raise Exception(assistant_response) from err
+        print(f"[create_order] ERROR: {str(err)}")
+        raise
 
 def detect_intent(user_message):
     """Detect which endpoint the user is trying to access based on their message"""
@@ -181,115 +190,55 @@ def execute_endpoint_action(intent, user_message=None):
         error_message = f"Failed to execute {intent}: {str(e)}"
         return jsonify({"error": error_message}), 500
 
-def extract_order_details(message: str) -> dict:
-    """Extract order details from user message and add smart defaults"""
-    message = message.lower()
-    
-    # Default order structure matching OANDA's expected format
-    order_data = {
-        "order": {
-            "type": "MARKET",
-            "instrument": "USD_JPY",  # Will be overwritten if found in message
-            "timeInForce": "FOK",
-            "positionFill": "DEFAULT",
-            "units": "100",  # Default position size
-            "trailingStopLossOnFill": {
-                "distance": "0.05",  # Default 5 pips trailing stop
-                "timeInForce": "GTC"
-            }
-        }
-    }
-    
-    # Extract currency pair with proper formatting
-    pairs_map = {
-        "usd/jpy": "USD_JPY",
-        "eur/usd": "EUR_USD",
-        "gbp/usd": "GBP_USD",
-        "usd/chf": "USD_CHF",
-        "aud/usd": "AUD_USD",
-        "usd/cad": "USD_CAD"
-    }
-    
-    # Find currency pair in message
-    for pair_text, pair_code in pairs_map.items():
-        if pair_text in message.replace(" ", ""):  # Remove spaces for matching
-            order_data["order"]["instrument"] = pair_code
-            break
-    
-    # Determine direction (buy/sell)
-    if "buy" in message:
-        order_data["order"]["units"] = "100"  # Positive for buy
-    elif "sell" in message:
-        order_data["order"]["units"] = "-100"  # Negative for sell
-    
-    # Extract specific units if provided
-    import re
-    units_match = re.search(r'(\d+)\s*(?:units?|lots?)', message)
-    if units_match:
-        units = int(units_match.group(1))
-        order_data["order"]["units"] = str(units if "sell" not in message else -units)
-    
-    # Add trailing stop loss by default for protection
-    pair = order_data["order"]["instrument"]
-    volatility_map = {
-        "USD_JPY": "0.200",    # 20 pips for JPY pairs
-        "EUR_USD": "0.0020",   # 20 pips for EUR pairs
-        "GBP_USD": "0.0025",   # 25 pips for GBP pairs
-        "USD_CHF": "0.0020",   # 20 pips for CHF pairs
-        "AUD_USD": "0.0015",   # 15 pips for AUD pairs
-        "USD_CAD": "0.0020"    # 20 pips for CAD pairs
-    }
-    
-    # Add trailing stop loss
-    order_data["order"]["trailingStopLossOnFill"] = {
-        "distance": volatility_map.get(pair, "0.0020"),
-        "timeInForce": "GTC"
-    }
-    
-    print(f"[extract_order_details] Generated order data: {json.dumps(order_data, indent=2)}")
-    return order_data
 
-def get_ai_response(user_message: str, available_data: dict = None) -> str:
-    """Get AI response with tool awareness"""
+
+def get_gemini_response(messages, model="gemini-pro"):
+    # Add model parameter with default value
+    try:
+        response = model.generate_content(messages)
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini API error: {str(e)}")
+        return "Sorry, I encountered an error processing your request."
+
+def get_ai_response(user_message: str, available_data: dict = None, conversation_history: list = None) -> str:
     system_prompt = f"""You are Trading Pal 1.0, a sophisticated AI trading assistant.
-    You have access to the following tools:
+    You have access to the following tools and context:
     
     {tool_registry.get_tool_descriptions()}
+    Current Broker: {g.get('broker_factory').current_broker if hasattr(g, 'broker_factory') else 'Not set'}
     
-    When a user asks to place an order:
-    1. If only a currency pair is mentioned, create a market order with smart defaults including trailing stop loss
-    2. Call the create_order tool with: <tool>create_order|account_id={ACCOUNT_ID}|data=ORDER_DETAILS</tool>
-    3. Wait for the order response
-    4. Explain to the user:
-       - The order details
-       - That a trailing stop loss was added for protection
-       - How the trailing stop loss works
-       - That the position size was set to a conservative default
+    You can:
+    1. Get account details and status
+    2. Provide market analysis
+    3. Explain trading concepts
+    4. Show historical data
     
-    For other requests requiring tools:
-    1. Identify which tool is needed
-    2. Call the tool using: <tool>tool_name</tool>
-    3. Wait for the tool's response
-    4. Provide a natural language response explaining the data
+    You CANNOT:
+    1. Place trades or create orders
+    2. Modify existing positions
+    3. Give specific trading advice
+    
+    Focus on providing information and analysis while directing users to their broker's platform for actual trading.
     """
-    
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_message}
-    ]
+    # Include conversation history for context
+    messages = [{"role": "system", "content": system_prompt}]
+    if conversation_history:
+        messages.extend(conversation_history)
+    messages.append({"role": "user", "content": user_message})
     
     if available_data:
         messages.append({
             "role": "assistant", 
-            "content": f"I have retrieved the following data: {json.dumps(available_data, indent=2)}"
+            "content": f"Retrieved data: {json.dumps(available_data, indent=2)}"
         })
     
-    return get_gemini_response(messages)
+    return get_gemini_response(messages, model="gemini-pro") # Pass model parameter
 
 def extract_instrument(message):
     """Extract instrument name from user message"""
     # Add common currency pairs
-    pairs = ["EUR_USD", "USD_JPY", "GBP_USD", "USD_CHF", "AUD_USD", "USD_CAD"]
+    pairs = ["EUR_USD"]
     for pair in pairs:
         if pair.lower() in message.lower():
             return pair
@@ -302,14 +251,7 @@ tool_registry = ToolRegistry()
 tool_registry.register(
     "get_account_details",
     "Fetch current account details including balance, margin, positions, etc.",
-    get_account_details
-)
-
-tool_registry.register(
-    "create_order",
-    "Create a new trading order",
-    create_order,
-    ["account_id", "order_data"]
+    get_account_details  # No parameters needed as broker is handled internally
 )
 
 # Gemini model configuration
@@ -336,112 +278,60 @@ def landing():
 def main():
     return render_template('main.html')
 
-def get_gemini_response(messages):
-    chat = model.start_chat()
-    
-    # Convert message format to Gemini format
-    for msg in messages:
-        if msg["role"] == "system":
-            chat.send_message(msg["content"])
-        else:
-            chat.send_message(msg["content"])
-    
-    return chat.last.text
-
 @app.route('/api/v1/query', methods=['POST'])
-def query():
-    """Enhanced query route with tool calling"""
-    print("[query] Received new query request")
-    user_message = request.json.get('message')
-    
-    if not user_message:
-        return jsonify({"error": "Message not provided"}), 400
-
-    print(f"[query] Processing message: {user_message}")
-
-    try:
-        # Get initial AI response to identify needed tool
-        response = get_ai_response(user_message)
-        
-        # Check for tool calls in response
-        if "<tool>" in response and "</tool>" in response:
-            tool_call = response.split("<tool>")[1].split("</tool>")[0]
-            
-            # Parse tool call with parameters
-            if "|" in tool_call:
-                parts = tool_call.split("|")
-                tool_name = parts[0]
-                params = dict(p.split("=") for p in parts[1:])
-            else:
-                tool_name = tool_call
-                params = {}
-            
-            tool = tool_registry.get_tool(tool_name)
-            
-            if tool:
-                if tool_name == "create_order":
-                    # Extract order details from user message
-                    order_data = extract_order_details(user_message)
-                    # Execute create order with parameters
-                    tool_response = tool.function(
-                        account_id=params.get('account_id', ACCOUNT_ID),
-                        order_data=order_data
-                    )
-                else:
-                    # Execute other tools
-                    tool_response = tool.function()
-                
-                # Get final AI response with tool data
-                final_response = get_ai_response(user_message, tool_response)
-                
-                # Save conversation
-                save_conversation_to_db(user_message, final_response)
-                
-                return jsonify({"response": final_response, "data": tool_response})
-            
-        # No tool needed, return direct AI response
-        save_conversation_to_db(user_message, response)
-        return jsonify({"response": response})
-        
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        print(f"[query] ERROR: {str(e)}")
-        print(f"[query] Traceback:\n{error_trace}")
-        return jsonify({
-            "error": str(e),
-            "traceback": error_trace
-        }), 500
-
-@app.route('/api/v1/create_order', methods=['POST'])
 @login_required
-def create_order_route():
-    """Enhanced order creation with broker selection"""
+def query():
+    print("[query] Received new query request")
+    
     try:
         data = request.json
+        user_message = data.get('message')
+        conversation_history = data.get('conversation_history', [])
         
-        # Get appropriate broker using user preferences
-        broker, broker_name = get_broker_for_request(data.get('message'))
+        if not user_message:
+            return jsonify({"error": "Message not provided"}), 400
+
+        print(f"[query] Processing message: {user_message}")
+        current_broker = request.headers.get('X-Selected-Broker') or 'oanda'
+        print(f"[query] Using broker: {current_broker}")
+
+        # Get broker configuration
+        broker_config = BrokerConfig.query.filter_by(
+            user_id=current_user.id,
+            broker_type=current_broker,
+            is_active=True
+        ).first()
+
+        # Format messages for Gemini
+        messages = [{
+            "role": "system",
+            "content": "You are Trading Pal 1.0, a sophisticated AI trading assistant. "
+                      f"Currently using {current_broker.upper()} broker."
+        }]
         
-        # Process order based on broker type
-        processed_order = broker.process_order_request(data)
+        # Add conversation history
+        messages.extend(conversation_history)
         
-        # Create the order
-        assistant_response, order_response = create_order(
-            account_id=broker.account_id,
-            order_data=processed_order
-        )
-        
-        return jsonify({
-            "response": assistant_response,
-            "order_response": order_response,
-            "broker_used": broker_name,
-            "broker_status": broker_factory.get_broker_status(broker_name)
+        # Add current message
+        messages.append({
+            "role": "user",
+            "content": user_message
         })
+
+        # Get AI response
+        response = get_gemini_response(messages)
         
+        # Save conversation if successful
+        if response:
+            save_conversation_to_db(user_message, response, current_broker)
+            return jsonify({"response": response})
+        else:
+            return jsonify({"error": "Failed to get AI response"}), 500
+
     except Exception as e:
-        error_msg = str(e)
-        print(f"[create_order_route] ERROR: {error_msg}")
-        return jsonify({"error": error_msg}), 500
+        logger.error(f"[query] ERROR: {str(e)}")
+        logger.error(f"[query] Traceback:\n{traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/v1/broker/status', methods=['GET'])
 @login_required
@@ -493,133 +383,23 @@ def teardown_broker_factory(exception):
     broker_factory = g.pop('broker_factory', None)
 
     
-@app.route('/save_strategy', methods=['POST'])
-def save_strategy():
-    data = request.get_json()
-    print(f"[save_strategy] Received data to save strategy: {data}")
-    strategy_database.append(data)
-    print("[save_strategy] Strategy saved successfully.")
-    return jsonify(success=True)
-
-@app.route('/search_strategies', methods=['POST'])
-def search_strategies():
-    search = request.get_json().get('search')
-    print(f"[search_strategies] Searching strategies with term: {search}")
-    result = [s for s in strategy_database if search in s['strategyName'] or search in s['authorName']]
-    print(f"[search_strategies] Found {len(result)} strategies matching search term.")
-    return jsonify(result)
-
-@app.route('/api/v1/backtest_strategy', methods=['POST'])
-def backtest_strategy():
-    """Enhanced backtest route with database integration and detailed logging"""
-    print("[backtest_strategy] Received new backtest request")
-    data = request.get_json()
-    print(f"[backtest_strategy] Request data: {json.dumps(data, indent=2)}")
-
+@app.route('/charts')
+@login_required
+def charts_view():
+    """Render charts view template with RSS feed integration"""
+    
+    # Check if data server is running
     try:
-        # Save strategy first
-        strategy = save_strategy_to_db(data)
-        print(f"[backtest_strategy] Strategy saved with ID: {strategy.id}")
-
-        # Load historical data and calculate indicators
-        print(f"[backtest_strategy] Loading historical data for {data['currencyPair']}")
-        df = load_historical_data(data['currencyPair'], data['timeFrame'], 5000)
-        print(f"[backtest_strategy] Loaded {len(df)} candles of historical data")
-
-        # Load indicator if selected
-        if data.get('indicator'):
-            indicator = Indicator.query.filter_by(name=data['indicator']).first()
-            if indicator:
-                print(f"[backtest_strategy] Applying indicator: {indicator.name}")
-                globals_dict = {"df": df}
-                exec(indicator.calculation_code, globals_dict)
-                df = globals_dict.get("df", df)
-            else:
-                print(f"[backtest_strategy] Indicator not found: {data['indicator']}")
-
-        # Execute strategy code
-        print("[backtest_strategy] Executing strategy code")
-        globals_dict = {"df": df}
-        exec(data['strategyCode'], globals_dict)
-
-        backtest_results = globals_dict.get("backtestResults", {})
-        backtest_results_str = "\n".join(f"{k}: {v}" for k, v in backtest_results.items())
-        print(f"[backtest_strategy] Strategy execution completed. Results:\n{backtest_results_str}")
-
-        # Get AI analysis
-        analysis_prompt = f"""Analyze this trading strategy:
-        Strategy Details:
-        Name: {data['strategyName']}
-        Author: {data['authorName']}
-        Pair: {data['currencyPair']}
-        Timeframe: {data['timeFrame']}
+        response = requests.get('http://localhost:4000/api/feed/forex/EUR-USD')
+        if (response.status_code != 200):
+            logger.warning("Data server not responding properly")
+    except requests.exceptions.ConnectionError:
+        logger.error("Cannot connect to data server")
         
-        Code: {data['strategyCode']}
-        
-        Results: {backtest_results_str}
-        
-        Provide a comprehensive analysis including:
-        1. Strategy overview and approach
-        2. Performance metrics analysis
-        3. Risk assessment
-        4. Potential improvements
-        5. Market conditions suitability
-        """
-
-        print("[backtest_strategy] Requesting AI analysis")
-        messages = [
-            {"role": "system", "content": "You are an expert trading strategy analyst."},
-            {"role": "user", "content": analysis_prompt}
-        ]
-        analysis = get_gemini_response(messages)
-        print(f"[backtest_strategy] Received AI analysis of length: {len(analysis)}")
-
-        # Save backtest results
-        backtest_result = save_backtest_result_to_db(strategy.id, backtest_results_str, analysis)
-        print(f"[backtest_strategy] Saved backtest results with ID: {backtest_result.id}")
-
-        return jsonify({
-            "strategy_id": strategy.id,
-            "backtestResults": backtest_results_str,
-            "analysis": analysis,
-            "error": None
-        })
-
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        print(f"[backtest_strategy] ERROR: {str(e)}")
-        print(f"[backtest_strategy] Traceback:\n{error_trace}")
-        return jsonify({
-            "error": str(e),
-            "error": str(e),
-            "traceback": error_trace,
-            "backtestResults": None,
-            "analysis": None
-        }), 500
-
-@app.route('/api/v1/indicators', methods=['GET'])
-def get_indicators():
-    """Endpoint to retrieve all indicators from the database"""
-    try:
-        indicators = Indicator.query.all()
-        indicator_list = [
-            {
-                "id": indicator.id,
-                "name": indicator.name,
-                "description": indicator.description,
-                "parameters": indicator.parameters,
-            }
-            for indicator in indicators
-        ]
-        return jsonify(indicator_list)
-    except Exception as e:
-        print(f"[get_indicators] ERROR: {str(e)}")
-        print(f"[get_indicators] Traceback: {traceback.format_exc()}")
-        return jsonify({"error": "Failed to retrieve indicators"}), 500
-
-@app.route('/backtest')
-def backtest_page():
-    return render_template('backtest.html')
+    return render_template(
+        'charts_components/charts_container.html',
+        data_server_url='http://localhost:4000'
+    )
 
 @app.route('/api/v1/account_details', methods=['GET'])
 @login_required
@@ -704,49 +484,6 @@ def save_conversation_to_db(user_message, assistant_response, broker_name=None):
         print(f"[save_conversation_to_db] Traceback: {traceback.format_exc()}")
         raise
 
-def save_strategy_to_db(data):
-    """Save strategy to database with error logging"""
-    print(f"[save_strategy_to_db] Attempting to save strategy: {data['strategyName']}")
-    try:
-        strategy = Strategy(
-            user_id=1,  # TODO: Replace with actual user ID from session
-            name=data['strategyName'],
-            description=f"Strategy created for {data['currencyPair']} on {data['timeFrame']} timeframe",
-            algo_code=data['strategyCode'],
-            currency_pair=data['currencyPair'],
-            time_frame=data['timeFrame'],
-            is_private=True
-        )
-        db.session.add(strategy)
-        db.session.commit()
-        print(f"[save_strategy_to_db] Successfully saved strategy ID: {strategy.id}")
-        return strategy
-    except Exception as e:
-        db.session.rollback()
-        print(f"[save_strategy_to_db] ERROR: Failed to save strategy: {str(e)}")
-        print(f"[save_strategy_to_db] Traceback: {traceback.format_exc()}")
-        raise
-
-def save_backtest_result_to_db(strategy_id, results_str, analysis):
-    """Save backtest results to database with error logging"""
-    print(f"[save_backtest_result_to_db] Saving results for strategy ID: {strategy_id}")
-    try:
-        result = BacktestResult(
-            strategy_id=strategy_id,
-            results=results_str,
-            analysis=analysis,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(result)
-        db.session.commit()
-        print(f"[save_backtest_result_to_db] Successfully saved backtest result ID: {result.id}")
-        return result
-    except Exception as e:
-        db.session.rollback()
-        print(f"[save_backtest_result_to_db] ERROR: Failed to save backtest result: {str(e)}")
-        print(f"[save_backtest_result_to_db] Traceback: {traceback.format_exc()}")
-        raise
-
 @app.route('/api/v1/store_conversation', methods=['POST'])
 def store_conversation():
     """Store conversation endpoint with detailed logging"""
@@ -760,96 +497,14 @@ def store_conversation():
         print(f"[store_conversation] Traceback:\n{error_trace}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': str(e), 
             'traceback': error_trace
         }), 500
 
-@app.route('/api/v1/querystrategyagent', methods=['POST'])
-@login_required
-def query_strategy_agent():
-    """
-    Endpoint to handle code generation requests using the Gemini AI agent.
-    """
-    # Check if the user is authenticated
-    if not current_user.is_authenticated:
-        return jsonify({"error": "User not authenticated"}), 401
-
-    data = request.get_json()
-    user_prompt = data.get('prompt')
-
-    if not user_prompt:
-        return jsonify({"error": "Prompt not provided"}), 400
-
-    try:
-        system_prompt = f"""
-You are an expert trading strategy and indicator coding assistant.
-You are integrated into the TradingPal backtesting platform.
-Users will provide requests in natural language through a web interface.
-Your task is to generate or modify Python code for trading strategies or indicators based on user requests.
-
-**Important Instructions:**
-
-1. **Generate Valid Python Code:** Ensure the generated code is syntactically correct, executable Python code.
-2. **Follow Coding Standards:** Adhere to PEP 8 style guidelines for code formatting.
-3. **Use Existing Functions:** Utilize the available indicator calculation functions from `indicators.py` (e.g., `calculate_rsi`, `calculate_macd`, etc.) whenever possible.
-4. **Provide Complete Code:** Generate complete code snippets that can be directly copied and pasted into the strategy code editor.
-5. **Handle Errors Gracefully:** If the user's request is unclear or cannot be fulfilled, provide a helpful error message instead of generating invalid code.
-6. **Focus on Code Generation:** Your primary role is to generate code. Avoid providing explanations or commentary unless specifically requested by the user.
-7. **Available functions:** You have access to the following functions in `indicators.py` for calculating technical indicators:
-    - `calculate_rsi(series, window)`
-    - `calculate_macd(series, window_fast, window_slow, window_signal)`
-    - `calculate_bollinger_bands(series, window)`
-    - `calculate_atr(high, low, close, window)`
-    - `calculate_adx(high, low, close, window)`
-    - `calculate_obv(close, volume)`
-    - `load_all_indicators()`
-    - `save_indicator_to_db(name, description, calculation_code, parameters)`
-
-    **Example Interaction:**
-
-    User: "Create a strategy that buys when the RSI is below 30 and sells when it's above 70. Use a 14-day window for RSI."
-
-    Assistant:
-    ```python
-    import pandas as pd
-    from indicators import calculate_rsi
-
-    def strategy(df):
-        # Calculate RSI with a 14-day window
-        df['rsi'] = calculate_rsi(df['close'], 14)
-
-        # Generate trading signals
-        df['signal'] = 0  # Initialize signal column
-        df.loc[df['rsi'] < 30, 'signal'] = 1  # Buy signal
-        df.loc[df['rsi'] > 70, 'signal'] = -1  # Sell signal
-
-        return df
-    ```
-    """
-        messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-        ]
-        ai_response = get_gemini_response(messages)
-
-        print(f"[query_strategy_agent] Received prompt: {user_prompt}")
-        print(f"[query_strategy_agent] AI response: {ai_response}")
-
-        return jsonify({"response": ai_response})
-
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        print(f"[query_strategy_agent] ERROR: {str(e)}")
-        print(f"[query_strategy_agent] Traceback:\n{error_trace}")
-        return jsonify({
-            "error": "An error occurred while processing your request.",
-            "traceback": error_trace
-        }), 500
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.register_blueprint(auth_bp)
-    app.register_blueprint(trading_bp)
-    app.register_blueprint(user_config_bp)
+    app.register_blueprint(user_config_bp)    
     app.run(port=5000, debug=True)

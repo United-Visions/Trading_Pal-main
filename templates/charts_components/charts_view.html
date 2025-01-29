@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Charts</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold mb-4">Live Trading Charts</h1>
+            <div class="flex space-x-4">
+                <button id="forexTab" class="px-4 py-2 bg-blue-600 rounded-lg">Forex</button>
+                <button id="cryptoTab" class="px-4 py-2 bg-gray-700 rounded-lg">Crypto</button>
+            </div>
+        </div>
+
+        <!-- Chart Containers -->
+        <div id="forexCharts" class="grid grid-cols-2 gap-4">
+            <!-- Forex charts will be inserted here -->
+        </div>
+        <div id="cryptoCharts" class="hidden grid grid-cols-2 gap-4">
+            <!-- Crypto charts will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        // JavaScript for managing charts and data updates will go here
+        // This will be implemented in a separate JS file
+    </script>
+</body>
+</html>
