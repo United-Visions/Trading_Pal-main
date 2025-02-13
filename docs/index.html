@@ -1,8 +1,63 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>Trading Pal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Pal Documentation</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        section {
+            margin-bottom: 30px;
+        }
+    </style>
 </head>
 <body>
-<p>This is a basic Jekyll site for Trading Pal.</p>
+    <h1>Trading Pal Documentation</h1>
+
+    <section>
+        <h2>Capabilities</h2>
+        <p>Trading Pal offers a comprehensive suite of tools for algorithmic trading, including:</p>
+        <ul>
+            <li>Backtesting engine</li>
+            <li>Data server with real-time market data</li>
+            <li>Interactive charting library</li>
+            <li>Dual Broker System (Alpaca, Oanda) for comprehensive market coverage (Forex, Crypto, Stocks)</li>
+            <li>Natural Language Trading</li>
+        <li>User-friendly interface</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Getting Started</h2>
+        <p>To get started with Trading Pal, follow these steps:</p>
+        <ol>
+            <li>Install the necessary dependencies: <code>pip install -r requirements.txt</code></li>
+            <li>Configure your broker credentials in <code>user_config.py</code></li>
+            <li>Run the application: <code>python main.py</code></li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Data Server</h2>
+        <p>The data server provides real-time market data via a REST API.  See the API documentation for details.</p>
+    </section>
+
+    <section>
+        <h2>Charts Display Logic</h2>
+        <p>Trading Pal uses a client-side charting library to display market data.  The library is highly customizable and allows for various chart types and indicators.</p>
+    </section>
+
+    <section>
+        <h2>Backtesting Logic</h2>
+        <p>The backtesting engine uses historical market data to simulate trading strategies.  The results are presented in a clear and concise format, allowing for easy analysis and optimization.</p>
+    </section>
+
 </body>
 </html>
