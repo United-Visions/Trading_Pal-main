@@ -55,3 +55,4 @@ tradinpal/__pycache__/openai_service.cpython-310.pyc
 tradinpal/__pycache__/speech_service.cpython-310.pyc
 tradinpal/__pycache__/voice_printer.cpython-310.pyc
 tradinpal/templates/index.html
+node_modules
