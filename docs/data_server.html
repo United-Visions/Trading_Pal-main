@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Pal Documentation - Data Server</title>
+</head>
+<body>
+  <div id="content">
+    <h1>Trading Pal Data Server</h1>
+    <p>The Trading Pal data server provides real-time market data via a REST API.  This document details the API endpoints and data formats.</p>
+
+    <h2>API Endpoints</h2>
+    <ul>
+        <li><code>/data/{symbol}</code>: Returns real-time data for the specified symbol.  `symbol` should be in the format `exchange:symbol` (e.g., `NASDAQ:AAPL`).</li>
+        <li><code>/historical/{symbol}/{start}/{end}</code>: Returns historical data for the specified symbol between the given start and end dates.  Dates should be in YYYY-MM-DD format.</li>
+    </ul>
+
+    <h2>Data Formats</h2>
+    <p>All data is returned in JSON format.  The structure of the data will vary depending on the endpoint.  See the examples below.</p>
+
+    <h2>Examples</h2>
+    <h3>Real-time Data</h3>
+    <pre><code class="language-json">
+{
+  "symbol": "NASDAQ:AAPL",
+  "timestamp": "2025-02-13T10:32:00Z",
+  "price": 150.25,
+  "volume": 10000
+}
+    </code></pre>
+    <h3>Historical Data</h3>
+    <pre><code class="language-json">
+[
+  {
+    "symbol": "NASDAQ:AAPL",
+    "timestamp": "2025-02-12T10:00:00Z",
+    "price": 149.50,
+    "volume": 5000
+  },
+  {
+    "symbol": "NASDAQ:AAPL",
+    "timestamp": "2025-02-12T10:01:00Z",
+    "price": 149.75,
+    "volume": 6000
+  }
+]
+    </code></pre>
+  </div>
+</body>
+</html>

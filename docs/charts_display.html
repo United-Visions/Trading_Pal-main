@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Pal Documentation - Charts Display</title>
+</head>
+<body>
+  <div id="content">
+    <h1>Trading Pal Charts Display Logic</h1>
+    <p>Trading Pal uses a client-side charting library to display market data.  This document details the features and customization options of the charting library.</p>
+
+    <h2>Features</h2>
+    <ul>
+        <li>Multiple chart types: Candlestick, line, bar, area.</li>
+        <li>Technical indicators: Moving averages, RSI, MACD, Bollinger Bands.</li>
+        <li>Customizable appearance: Colors, styles, fonts.</li>
+        <li>Interactive features: Zooming, panning, crosshairs.</li>
+    </ul>
+
+    <h2>Customization</h2>
+    <p>The charting library can be customized through various configuration options.  See the examples below.</p>
+
+    <h2>Examples</h2>
+    <h3>Basic Candlestick Chart</h3>
+    <pre><code class="language-javascript">
+const chart = new Chart({
+  type: 'candlestick',
+  data: {
+    labels: ['2025-02-12', '2025-02-13'],
+    datasets: [{
+      data: [
+        { open: 149.50, high: 150.00, low: 149.00, close: 149.75 },
+        { open: 149.75, high: 150.50, low: 149.50, close: 150.25 }
+      ]
+    }]
+  }
+});
+    </code></pre>
+  </div>
+</body>
+</html>
