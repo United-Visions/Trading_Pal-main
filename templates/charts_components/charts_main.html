@@ -1,0 +1,23 @@
+<div class="flex-grow overflow-hidden p-4 relative">
+    <div id="activeChart" class="w-full h-full rounded-lg overflow-hidden bg-dark-700/50">
+        <div class="w-full h-full relative">
+            <canvas id="chartCanvas"></canvas>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="chart-loading" class="absolute inset-0 flex items-center justify-center bg-dark-800/80 backdrop-blur-sm hidden">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        </div>
+    </div>
+
+    <!-- Feed Status -->
+    <div id="feed-status" class="absolute top-4 right-4 flex items-center space-x-2">
+        <div class="feed-indicator w-2 h-2 rounded-full bg-red-500 transition-colors"></div>
+        <span class="text-xs text-gray-400">Feed Status</span>
+    </div>
+
+    <!-- Feed Error -->
+    <div id="feed-error" class="hidden absolute top-16 right-4 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+        Connection error, retrying...
+    </div>
+</div>

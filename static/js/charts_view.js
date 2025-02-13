@@ -1,556 +1,541 @@
 class ChartManager {
     constructor() {
-        this.activePair = null;
-        this.activeTimeframe = '1m';
-        this.chartType = 'candlestick';
-        this.marketType = 'forex';
+        this.activePair = 'EUR-USD';
         this.chart = null;
-        this.candleSeries = null;
+        this.dataUpdateInterval = 1000;
         this.updateInterval = null;
-        this.ws = null;
-        this.interval = null;
-        this.currentData = {
-            forex: {},
-            crypto: {}
-        };
+        this.isInitialized = false;
+        this.container = null;
+        this.loadingEl = null;
+        this.errorEl = null;
+        this.pairInfoEl = null;
         
-        this.pairs = {
-            forex: ['EUR/USD', 'GBP/USD'],
-            crypto: ['BTC/USD', 'ETH/USD']
-        };
-
-        this.timeframes = {
-            '1h': '1 Hour',
-            '4h': '4 Hours', 
-            '1d': '1 Day'
-        };
-
-        this.colors = {
-            background: '#1a1a1a',
-            grid: '#333333',
-            text: '#ffffff',
-            up: '#26a69a',
-            down: '#ef5350',
-            line: '#2962ff'
-        };
-        
-        this.initializeUI();
-        this.initializeWebSocket();
-        this.setupEventListeners();
-        
-        this.dataServer = 'http://localhost:4000';
-        this.updateInterval = null;
-        this.feedReaders = {};
-        this.rssReader = null;
-        this.dataUpdateInterval = 1000; // 1 second update interval
-        this.lastUpdate = {};
-        this.errorCount = 0;
-        this.maxErrors = 3;
-    }
-
-    initializeWebSocket() {
-        this.ws = new WebSocket('wss://socket.polygon.io/forex');
-        
-        this.ws.onopen = () => {
-            // Authenticate immediately on connection
-            const auth_msg = {
-                "action": "auth",
-                "params": POLYGON_API_KEY
-            };
-            this.ws.send(JSON.stringify(auth_msg));
-        };
-
-        this.ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (Array.isArray(data)) {
-                data.forEach(msg => this.handleMessage(msg));
-            } else {
-                this.handleMessage(data);
-            }
-        };
-
-        this.ws.onclose = () => {
-            console.log('WebSocket closed, attempting to reconnect...');
-            setTimeout(() => this.initializeWebSocket(), 5000);
-        };
-    }
-
-    handleMessage(msg) {
-        if (msg.ev === 'status' && msg.status === 'auth_success') {
-            // Subscribe to forex and crypto feeds after authentication
-            if (this.activePair) {
-                const subscribeMsg = {
-                    "action": "subscribe",
-                    "params": this.marketType === 'forex' ? 
-                        `C.${this.activePair.replace('/', '-')}` :
-                        `XT.${this.activePair.replace('/', '-')}`
-                };
-                this.ws.send(JSON.stringify(subscribeMsg));
-            }
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
         }
-        else if ((msg.ev === 'C' || msg.ev === 'XT') && this.chart) {
-            this.updateChartWithData(msg);
-        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => this.cleanup());
     }
 
-    initializeUI() {
-        const select = document.getElementById('timeframeSelect');
-        select.innerHTML = '';
+    initialize() {
+        // Get DOM elements
+        this.container = document.getElementById('charts-container');
+        this.loadingEl = document.getElementById('chart-loading');
+        this.errorEl = document.getElementById('chart-error');
+        this.pairInfoEl = document.getElementById('chart-pair-info');
         
-        Object.entries(this.timeframes).forEach(([value, label]) => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
-            select.appendChild(option);
-        });
+        if (!this.container || !this.loadingEl || !this.errorEl || !this.pairInfoEl) {
+            console.error('Required chart elements not found');
+            return;
+        }
 
-        this.updatePairSelect(this.marketType);
+        // Setup event listeners
+        document.getElementById('charts-tab')?.addEventListener('click', () => this.show());
+        document.getElementById('close-charts')?.addEventListener('click', () => this.hide());
+        document.getElementById('retry-chart')?.addEventListener('click', () => this.retry());
+
+        // Initialize chart
         this.initializeChart();
     }
 
-    initializeChart() {
-        try {
-            const canvas = document.getElementById('chartCanvas');
-            if (!canvas) {
-                console.error('Chart canvas element not found');
-                return;
+    show() {
+        if (this.container) {
+            this.container.classList.remove('hidden');
+            this.container.classList.add('flex');
+            if (!this.chart) {
+                this.initializeChart();
             }
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error('Failed to get canvas context');
-                return;
-            }
-
-            // Create chart configuration
-            const chartConfig = {
-                type: 'line', // Changed from candlestick to line initially
-                data: {
-                    datasets: [{
-                        label: this.activePair || 'No pair selected',
-                        data: [],
-                        borderColor: this.colors.line,
-                        backgroundColor: this.colors.background,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: this.activeTimeframe === '1h' ? 'minute' : 'hour'
-                            },
-                            grid: {
-                                color: this.colors.grid
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: this.colors.grid
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                color: this.colors.text
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: this.colors.background,
-                            titleColor: this.colors.text,
-                            bodyColor: this.colors.text,
-                            borderColor: this.colors.grid,
-                            borderWidth: 1
-                        }
-                    },
-                    interaction: {
-                        mode: 'nearest',
-                        axis: 'x',
-                        intersect: false
-                    }
-                }
-            };
-
-            if (this.chart) {
-                this.chart.destroy();
-            }
-
-            this.chart = new Chart(ctx, chartConfig);
-            console.log('Chart initialized successfully');
-        } catch (error) {
-            console.error('Chart initialization failed:', error);
         }
     }
 
-    async fetchHistoricalData() {
-        try {
-            const response = await fetch(`/charts/api/historical/${this.marketType}/${this.activePair}/${this.activeTimeframe}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+    hide() {
+        if (this.container) {
+            this.container.classList.remove('flex');
+            this.container.classList.add('hidden');
+        }
+    }
+
+    showLoading() {
+        if (this.loadingEl) {
+            this.loadingEl.classList.remove('hidden');
+            this.loadingEl.classList.add('flex');
+        }
+    }
+
+    hideLoading() {
+        if (this.loadingEl) {
+            this.loadingEl.classList.remove('flex');
+            this.loadingEl.classList.add('hidden');
+        }
+    }
+
+    showError(message) {
+        if (this.errorEl) {
+            const messageEl = document.getElementById('chart-error-message');
+            if (messageEl) {
+                messageEl.textContent = message || 'Unable to load chart data';
             }
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Failed to fetch historical data:', error);
-            return null;
+            this.errorEl.classList.remove('hidden');
+            this.errorEl.classList.add('flex');
         }
     }
 
-    handleConnectionFailure() {
-        console.log('WebSocket connection failed, switching to historical data');
-        this.fetchHistoricalData().then(data => {
-            if (data) {
-                this.updateChartWithHistoricalData(data);
-            }
-        });
-    }
-
-    async startFeedReader(market, pair) {
-        if (this.feedReaders[`${market}-${pair}`]) {
-            clearInterval(this.feedReaders[`${market}-${pair}`]);
-        }
-
-        const updateChart = async () => {
-            try {
-                const response = await fetch(`${this.dataServer}/api/feed/${market}/${pair}`);
-                if (!response.ok) throw new Error('Feed fetch failed');
-                
-                const data = await response.json();
-                this.updateChartWithFeedData(data);
-            } catch (error) {
-                console.error('Feed update error:', error);
-            }
-        };
-
-        // Initial update
-        await updateChart();
-        
-        // Set up interval for updates
-        this.feedReaders[`${market}-${pair}`] = setInterval(updateChart, 1000);
-    }
-
-    updateChartWithFeedData(data) {
-        if (!this.chart || !data.length) return;
-
-        const chartData = data.map(item => ({
-            x: new Date(item.timestamp),
-            y: item.price
-        }));
-
-        const dataset = this.chart.data.datasets[0];
-        dataset.data = chartData;
-        this.chart.update('quiet');
-    }
-
-    createSeries(type = 'line') {
-        if (this.chart) {
-            this.chart.destroy();
-        }
-
-        const chartConfig = {
-            type: type,
-            data: {
-                datasets: [{
-                    label: this.activePair || 'No pair selected',
-                    data: [],
-                    borderColor: this.colors.line,
-                    backgroundColor: type === 'line' ? 'transparent' : this.colors.background,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: this.getTimeUnit()
-                        },
-                        grid: {
-                            color: this.colors.grid
-                        }
-                    },
-                    y: {
-                        grid: {
-                            color: this.colors.grid
-                        }
-                    }
-                }
-            }
-        };
-
-        const canvas = document.getElementById('chartCanvas');
-        this.chart = new Chart(canvas, chartConfig);
-        
-        // Start feed reader for current pair
-        if (this.activePair) {
-            this.startFeedReader(this.marketType, this.activePair);
+    hideError() {
+        if (this.errorEl) {
+            this.errorEl.classList.remove('flex');
+            this.errorEl.classList.add('hidden');
         }
     }
 
-    getTimeUnit() {
-        switch(this.activeTimeframe) {
-            case '1h': return 'minute';
-            case '4h': return 'hour';
-            case '1d': return 'day';
-            default: return 'hour';
-        }
+    retry() {
+        this.hideError();
+        this.initializeChart();
     }
 
-    refreshCharts() {
-        if (this.activePair && this.chart) {
-            this.updateChart();
-        }
-    }
-
-    updateChart() {
-        if (!this.activePair) return;
-
-        const endpoint = `/charts/api/data/${this.marketType}`;
-        
-        fetch(endpoint)
-            .then(response => response.json())
-            .then(data => {
-                if (!data[this.activePair]) return;
-
-                const chartData = data[this.activePair].map(bar => ({
-                    time: new Date(bar.timestamp).getTime() / 1000,
-                    open: bar.open,
-                    high: bar.high,
-                    low: bar.low,
-                    close: bar.close,
-                    volume: bar.volume
-                }));
-
-                this.candleSeries.setData(chartData);
-            })
-            .catch(console.error);
-    }
-
-    updateChartWithData(data) {
-        if (!this.chart || !this.activePair) return;
-
-        const price = data.ev === 'C' ? 
-            (parseFloat(data.a) + parseFloat(data.b)) / 2 : // Forex midpoint
-            parseFloat(data.p); // Crypto price
-
-        const newData = {
-            x: new Date(data.t),
-            y: price
-        };
-
-        const dataset = this.chart.data.datasets[0];
-        dataset.data.push(newData);
-
-        // Keep only last 1000 points
-        if (dataset.data.length > 1000) {
-            dataset.data.shift();
-        }
-
-        this.chart.update('quiet');
-    }
-
-    setupEventListeners() {
-        // Market type selection
-        document.getElementById('forexTab').addEventListener('click', () => this.switchMarket('forex'));
-        document.getElementById('cryptoTab').addEventListener('click', () => this.switchMarket('crypto'));
-
-        // Pair selection
-        document.getElementById('pairSelect').addEventListener('change', (e) => {
-            this.activePair = e.target.value;
-            if (this.activePair) {
-                this.createSeries(this.chartType);
-                this.startDataUpdates();
-            }
-        });
-
-        // Timeframe selection
-        document.getElementById('timeframeSelect').addEventListener('change', (e) => {
-            this.activeTimeframe = e.target.value;
-            if (this.activePair) {
-                this.updateChart();
-            }
-        });
-
-        // Chart type selection
-        document.querySelectorAll('.chart-type-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const type = e.currentTarget.dataset.type;
-                this.switchChartType(type);
-            });
-        });
-    }
-
-    switchChartType(type) {
-        this.chartType = type;
-        document.querySelectorAll('.chart-type-btn').forEach(btn => {
-            btn.classList.toggle('bg-blue-600', btn.dataset.type === type);
-            btn.classList.toggle('bg-dark-700', btn.dataset.type !== type);
-        });
-        if (this.activePair) {
-            this.createSeries(type);
-            this.updateChart();
-        }
-    }
-
-    startDataUpdates() {
+    cleanup() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
-        }
-        this.updateChart();
-        this.updateInterval = setInterval(() => this.updateChart(), 1000);
-    }
-
-    switchMarket(marketType) {
-        this.marketType = marketType;
-        this.updatePairSelect(marketType);
-        this.activePair = null;
-        
-        // Update UI
-        const isForex = marketType === 'forex';
-        document.getElementById('forexTab').className = 
-            `px-4 py-2 rounded-lg text-white flex-1 ${isForex ? 'bg-blue-600' : 'bg-gray-700'}`;
-        document.getElementById('cryptoTab').className = 
-            `px-4 py-2 rounded-lg text-white flex-1 ${!isForex ? 'bg-blue-600' : 'bg-gray-700'}`;
-    }
-
-    toggleFullscreen(enable) {
-        this.isFullscreen = enable;
-        const fullscreenEl = document.getElementById('fullscreen-chart');
-        
-        if (enable) {
-            fullscreenEl.classList.remove('hidden');
-            document.getElementById('fullscreen-title').textContent = this.activePair;
-            this.createChart('fullscreen-chart-container', this.activePair, true);
-        } else {
-            fullscreenEl.classList.add('hidden');
-        }
-    }
-
-    updatePairSelect(marketType) {
-        const select = document.getElementById('pairSelect');
-        select.innerHTML = '<option value="">Select Pair</option>';
-        
-        this.pairs[marketType].forEach(pair => {
-            const option = document.createElement('option');
-            option.value = pair;
-            option.textContent = pair;
-            select.appendChild(option);
-        });
-    }
-    
-    cleanup() {
-        // Clean up feed readers
-        Object.values(this.feedReaders).forEach(interval => clearInterval(interval));
-        this.feedReaders = {};
-        if (this.rssReader) {
-            clearInterval(this.rssReader);
-            this.rssReader = null;
+            this.updateInterval = null;
         }
         if (this.chart) {
             this.chart.destroy();
             this.chart = null;
         }
+        this.isInitialized = false;
     }
 
-    async initializeFeed() {
+    async initializeChart() {
         try {
-            if (this.activePair && this.marketType) {
-                const feedUrl = `${this.dataServer}/rss/${this.marketType}/${this.activePair.replace('/', '-')}`;
-                this.startFeedPolling(feedUrl);
+            const container = document.getElementById('activeChart');
+            const canvas = document.getElementById('chartCanvas');
+            
+            if (!canvas || !container) {
+                console.error('Required chart elements not found');
+                return;
             }
+
+            // Set canvas size to match container
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get canvas context');
+                return;
+            }
+
+            // Register required Chart.js components
+            Chart.register(Chart.TimeScale);
+            Chart.register(Chart.LinearScale);
+            Chart.register(Chart.LineController);
+            Chart.register(Chart.PointElement);
+            Chart.register(Chart.LineElement);
+            Chart.register(Chart.Legend);
+            Chart.register(Chart.Tooltip);
+            
+            this.chart = new Chart(ctx, this.getChartConfig());
+            console.log('Chart initialized successfully');
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                if (this.chart) {
+                    canvas.width = container.offsetWidth;
+                    canvas.height = container.offsetHeight;
+                    this.chart.resize();
+                }
+            });
+
+            await this.startDataFeed();
+
         } catch (error) {
-            console.error('Feed initialization error:', error);
-            this.handleFeedError();
+            console.error('Chart initialization error:', error);
         }
     }
 
-    startFeedPolling(feedUrl) {
-        if (this.rssReader) {
-            clearInterval(this.rssReader);
-        }
-
-        this.rssReader = setInterval(async () => {
-            try {
-                const response = await fetch(feedUrl);
-                if (!response.ok) throw new Error('Feed fetch failed');
-                
-                const data = await response.json();
-                this.updateChartWithFeedData(data);
-                this.errorCount = 0; // Reset error count on successful update
-            } catch (error) {
-                console.error('Feed polling error:', error);
-                this.handleFeedError();
+    getChartConfig() {
+        return {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: `${this.activePair} Price`,
+                        data: [],
+                        borderColor: '#0090ff',
+                        backgroundColor: 'rgba(0, 144, 255, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.2,
+                        fill: true,
+                        cubicInterpolationMode: 'monotone',
+                        order: 1,  // Display on top
+                        segment: {
+                            borderColor: (ctx) => {
+                                if (!ctx.p0 || !ctx.p1) return '#0090ff';
+                                // Green if price is going up, red if going down
+                                return ctx.p0.parsed.y < ctx.p1.parsed.y ? 
+                                    'rgba(0, 255, 144, 0.8)' : 
+                                    'rgba(255, 72, 72, 0.8)';
+                            }
+                        },
+                        spanGaps: true
+                    },
+                    {
+                        label: 'Price Range',
+                        data: [],
+                        backgroundColor: (ctx) => {
+                            if (!ctx.raw) return 'rgba(0, 144, 255, 0.05)';
+                            const point = ctx.chart.data.datasets[0].data[ctx.dataIndex];
+                            if (!point) return 'rgba(0, 144, 255, 0.05)';
+                            const nextPoint = ctx.chart.data.datasets[0].data[ctx.dataIndex + 1];
+                            if (!nextPoint) return 'rgba(0, 144, 255, 0.05)';
+                            // Green gradient if price is going up, red if down
+                            return point.y < nextPoint.y ?
+                                'rgba(0, 255, 144, 0.1)' :
+                                'rgba(255, 72, 72, 0.1)';
+                        },
+                        borderColor: 'rgba(0, 144, 255, 0.2)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: true,
+                        order: 2,  // Display behind price line
+                        spanGaps: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                layout: {
+                    padding: {
+                        top: 20,
+                        right: 20,
+                        bottom: 20,
+                        left: 20
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm',
+                                hour: 'HH:mm',
+                                day: 'MMM d'
+                            },
+                            tooltipFormat: 'yyyy MMM d, HH:mm:ss',
+                            parser: 'yyyy-MM-dd HH:mm:ss'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false,
+                            tickLength: 10
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            maxRotation: 0,
+                            padding: 10,
+                            font: {
+                                size: 11,
+                                family: "'Inter', sans-serif"
+                            }
+                        },
+                        border: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        adapters: {
+                            date: {
+                                zone: 'UTC'
+                            }
+                        }
+                    },
+                    y: {
+                        position: 'right',
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false,
+                            tickLength: 10
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            padding: 10,
+                            callback: function(value) {
+                                return value.toFixed(5);
+                            },
+                            font: {
+                                size: 11,
+                                family: "'Inter', sans-serif"
+                            }
+                        },
+                        border: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: 'rgba(255, 255, 255, 0.8)',
+                        bodyColor: 'rgba(255, 255, 255, 0.8)',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        titleFont: {
+                            size: 12,
+                            family: "'Inter', sans-serif"
+                        },
+                        bodyFont: {
+                            size: 12,
+                            family: "'Inter', sans-serif"
+                        },
+                        callbacks: {
+                            title: function(context) {
+                                const time = new Date(context[0].parsed.x);
+                                return time.toLocaleString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false,
+                                    timeZone: 'UTC'
+                                });
+                            },
+                            label: function(context) {
+                                const datasetLabel = context.dataset.label;
+                                if (datasetLabel === 'Price Range') {
+                                    const point = context.raw;
+                                    const change = ((point.close - point.open) / point.open * 100).toFixed(3);
+                                    const direction = change > 0 ? '▲' : change < 0 ? '▼' : '►';
+                                    const color = change > 0 ? '🟢' : change < 0 ? '🔴' : '⚪';
+                                    return [
+                                        `${color} Change: ${direction} ${Math.abs(change)}%`,
+                                        `High: ${point.y[1].toFixed(5)}`,
+                                        `Low: ${point.y[0].toFixed(5)}`,
+                                        `Open: ${point.open.toFixed(5)}`,
+                                        `Close: ${point.close.toFixed(5)}`
+                                    ];
+                                }
+                                const value = context.parsed.y.toFixed(5);
+                                const prevValue = context.parsed.x > 0 ? 
+                                    context.dataset.data[context.dataIndex - 1]?.y : null;
+                                if (prevValue !== null) {
+                                    const change = ((value - prevValue) / prevValue * 100).toFixed(3);
+                                    const direction = change > 0 ? '▲' : change < 0 ? '▼' : '►';
+                                    const color = change > 0 ? '🟢' : change < 0 ? '🔴' : '⚪';
+                                    return [
+                                        `${datasetLabel}: ${value}`,
+                                        `${color} Change: ${direction} ${Math.abs(change)}%`
+                                    ];
+                                }
+                                return `${datasetLabel}: ${value}`;
+                            }
+                        }
+                    }
+                }
             }
-        }, this.dataUpdateInterval);
+        };
     }
 
-    handleFeedError() {
-        this.errorCount++;
-        if (this.errorCount >= this.maxErrors) {
-            console.error('Max feed errors reached, falling back to REST API');
-            this.fallbackToRestApi();
-        }
-    }
-
-    async fallbackToRestApi() {
-        clearInterval(this.rssReader);
-        const apiUrl = `${this.dataServer}/api/feed/${this.marketType}/${this.activePair.replace('/', '-')}`;
+    async fetchData() {
+        if (!this.isInitialized) return;
         
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('API fetch failed');
+            this.showLoading();
+            this.hideError();
             
-            const data = await response.json();
-            this.updateChartWithFeedData(data);
+            const response = await fetch(`/api/chart_data/${this.activePair}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            if (!result || !result.data || !Array.isArray(result.data) || result.data.length === 0) {
+                throw new Error('No data available');
+            }
+            
+            // Update metadata display if available
+            if (result.metadata) {
+                const lastUpdate = new Date(result.metadata.last_update);
+                const formattedUpdate = lastUpdate.toLocaleString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                console.log(`Last update: ${formattedUpdate} - ${result.metadata.count} points`);
+            }
+            
+            await this.updateChartWithData(result.data);
+            this.hideLoading();
+            
+            // Update pair info with data type
+            if (this.pairInfoEl) {
+                const dataType = result.metadata?.type === 'real-time' ? '(Real-time)' : '';
+                this.pairInfoEl.textContent = `${this.activePair.replace('-', '/')} ${dataType}`;
+            }
         } catch (error) {
-            console.error('REST API fallback error:', error);
+            console.error('Error fetching chart data:', error);
+            this.hideLoading();
+            this.showError(error.message);
+            
+            // Clear update interval if we can't fetch data
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+                this.updateInterval = null;
+            }
+            
+            // Try to reconnect after delay
+            setTimeout(() => {
+                if (!this.updateInterval && !document.hidden) {
+                    console.log('Attempting to reconnect...');
+                    this.startDataFeed();
+                }
+            }, 5000);
         }
     }
 
-    updateChartWithFeedData(data) {
-        if (!this.chart || !data.length) return;
+    updateChartWithData(data) {
+        if (!this.chart || !Array.isArray(data) || data.length === 0) {
+            console.warn('Invalid chart data received');
+            return;
+        }
 
-        const chartData = data.map(item => ({
-            x: new Date(item.timestamp),
-            y: parseFloat(item.price),
-            volume: parseFloat(item.volume)
-        }));
+        try {
+            // Sort data by timestamp
+            data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        const dataset = this.chart.data.datasets[0];
-        dataset.data = chartData;
-        this.chart.update('quiet');
+            // Process price line data
+            const priceData = data.map(entry => ({
+                x: new Date(entry.timestamp),
+                y: parseFloat(entry.price)
+            })).filter(point => !isNaN(point.y));
+
+            // Process price range data
+            const rangeData = data.map(entry => {
+                const high = parseFloat(entry.high);
+                const low = parseFloat(entry.low);
+                if (isNaN(high) || isNaN(low)) return null;
+                return {
+                    x: new Date(entry.timestamp),
+                    y: [low, high],
+                    open: parseFloat(entry.open),
+                    close: parseFloat(entry.close)
+                };
+            }).filter(point => point !== null);
+
+            if (priceData.length === 0) {
+                console.warn('No valid price data points');
+                return;
+            }
+
+            // Update datasets
+            this.chart.data.datasets[0].data = priceData;
+            this.chart.data.datasets[1].data = rangeData;
+
+            // Get all price values for scaling
+            const allPrices = [
+                ...priceData.map(p => p.y),
+                ...rangeData.map(p => p.y[0]), // lows
+                ...rangeData.map(p => p.y[1])  // highs
+            ];
+
+            // Update time scale
+            const times = priceData.map(p => p.x);
+            this.chart.options.scales.x.min = Math.min(...times);
+            this.chart.options.scales.x.max = Math.max(...times);
+
+            // Update price scale with padding
+            const minPrice = Math.min(...allPrices);
+            const maxPrice = Math.max(...allPrices);
+            const padding = (maxPrice - minPrice) * 0.1;
+            this.chart.options.scales.y.min = minPrice - padding;
+            this.chart.options.scales.y.max = maxPrice + padding;
+
+            // Update without animation for performance
+            this.chart.update('none');
+
+            console.log(`Updated chart with ${priceData.length} price points and ${rangeData.length} range points`);
+        } catch (error) {
+            console.error('Error updating chart data:', error);
+            this.showError('Failed to update chart data');
+        }
+    }
+
+    async startDataFeed() {
+        try {
+            // Clear existing interval if any
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+                this.updateInterval = null;
+            }
+
+            // Set initialized flag before fetching data
+            this.isInitialized = true;
+
+            // Initial data fetch
+            await this.fetchData();
+
+            // Start interval only if initial fetch was successful and no error is showing
+            if (!this.errorEl?.classList.contains('flex')) {
+                this.updateInterval = setInterval(() => {
+                    if (!document.hidden) { // Only fetch if page is visible
+                        this.fetchData().catch(error => {
+                            console.error('Error in data feed interval:', error);
+                        });
+                    }
+                }, this.dataUpdateInterval);
+
+                // Handle page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && !this.updateInterval) {
+                        // Restart interval if page becomes visible and interval was cleared
+                        this.updateInterval = setInterval(() => {
+                            this.fetchData().catch(error => {
+                                console.error('Error in data feed interval:', error);
+                            });
+                        }, this.dataUpdateInterval);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error starting data feed:', error);
+            this.showError('Failed to start data feed');
+            this.isInitialized = false;
+        }
+    }
+
+    destroy() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        this.isInitialized = false;
     }
 }
 
-// Initialize after loading required libraries
 document.addEventListener('DOMContentLoaded', () => {
-    // Load required libraries
-    const scripts = [
-        'https://cdn.jsdelivr.net/npm/chart.js',
-        'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns',
-        'https://cdn.jsdelivr.net/npm/chartjs-plugin-crosshair'
-    ];
-
-    Promise.all(scripts.map(src => {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }))
-    .then(() => {
-        window.chartManager = new ChartManager();
-    })
-    .catch(console.error);
+    window.chartManager = new ChartManager();
 });

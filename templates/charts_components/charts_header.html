@@ -1,0 +1,39 @@
+<div class="flex-none p-4 border-b border-dark-700">
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white">Live Charts</h2>
+        <div class="flex space-x-2">
+            <button id="expand-charts" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-expand"></i>
+            </button>
+            <button id="close-charts" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="flex flex-col space-y-4 mt-4">
+        <div class="flex space-x-4">
+            <button id="forexTab" class="flex-1 px-4 py-2 bg-primary-600 rounded-lg text-white flex items-center justify-center space-x-2 transition-colors hover:bg-primary-500">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Forex</span>
+            </button>
+            <button id="cryptoTab" class="flex-1 px-4 py-2 bg-dark-700 rounded-lg text-white flex items-center justify-center space-x-2 transition-colors hover:bg-dark-600">
+                <i class="fab fa-bitcoin"></i>
+                <span>Crypto</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <select id="pairSelect" class="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2 text-white focus:border-primary-500 transition-colors">
+                <option value="">Select Pair</option>
+            </select>
+            
+            <select id="timeframeSelect" class="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2 text-white focus:border-primary-500 transition-colors">
+                <option value="1h">1 Hour</option>
+                <option value="4h">4 Hours</option>
+                <option value="1d">1 Day</option>
+            </select>
+        </div>
+    </div>
+</div>

@@ -91,16 +91,28 @@ class AlpacaBroker:
             if not self.trading_client:
                 raise ValueError("Trading client not initialized")
                 
-            account = self.rest_api.get_account()
+            account = self.trading_client.get_account()
+            positions = self.trading_client.get_all_positions()
+            orders = self.trading_client.get_orders()
             
             return {
-                'balance': float(account.equity),
-                'currency': 'USD',
-                'marginAvailable': float(account.buying_power),
-                'pl': float(account.equity) - float(account.last_equity),
-                'openPositionCount': len(self.rest_api.list_positions()),
-                'openTradeCount': len(self.rest_api.list_orders(status='open')),
-                'marginRate': float(account.multiplier)
+                'account': {
+                    'id': account.id,
+                    'currency': account.currency,
+                    'balance': str(account.cash),
+                    'marginAvailable': str(account.buying_power),
+                    'pl': str(account.unrealized_pl),
+                    'openPositionCount': len(positions),
+                    'openTradeCount': len(orders),
+                    'marginRate': str(account.multiplier),
+                    'createdTime': account.created_at.isoformat() if account.created_at else None,
+                    'NAV': str(account.portfolio_value),
+                    'marginUsed': str(account.initial_margin),
+                    'unrealizedPL': str(account.unrealized_pl),
+                    'withdrawalLimit': str(account.withdrawable_cash),
+                    'alias': 'Primary'
+                },
+                'lastTransactionID': None  # Alpaca doesn't provide this
             }
         except Exception as e:
             logger.error(f"Error getting account details: {str(e)}")
@@ -109,9 +121,13 @@ class AlpacaBroker:
     def create_order(self, order_data):
         """Create a new trading order"""
         try:
+            if not self.trading_client:
+                raise ValueError("Trading client not initialized")
+
             order = order_data.get('order', {})
-            side = 'buy' if float(order.get('units', 0)) > 0 else 'sell'
-            qty = abs(float(order.get('units', 0)))
+            units = float(order.get('units', 0))
+            side = OrderSide.BUY if units > 0 else OrderSide.SELL
+            qty = abs(units)
             
             # Map OANDA order types to Alpaca order types
             order_type_map = {
@@ -122,22 +138,25 @@ class AlpacaBroker:
             
             order_type = order_type_map.get(order.get('type', 'MARKET'), 'market')
             
-            response = self.api.submit_order(
+            # Create order request
+            request = MarketOrderRequest(
                 symbol=order.get('instrument', '').replace('_', ''),
                 qty=qty,
                 side=side,
-                type=order_type,
-                time_in_force='day',
-                limit_price=order.get('price') if order_type == 'limit' else None,
-                stop_price=order.get('price') if order_type == 'stop' else None
+                time_in_force=TimeInForce.DAY,
+                limit_price=float(order.get('price')) if order_type == 'limit' else None,
+                stop_price=float(order.get('price')) if order_type == 'stop' else None
             )
+            
+            # Submit order
+            response = self.trading_client.submit_order(request)
             
             return {
                 "orderFillTransaction": {
                     "id": response.id,
                     "instrument": response.symbol,
-                    "units": response.qty if side == 'buy' else -float(response.qty),
-                    "time": response.submitted_at.isoformat()
+                    "units": float(response.qty) if side == OrderSide.BUY else -float(response.qty),
+                    "time": response.submitted_at.isoformat() if response.submitted_at else None
                 }
             }
         except Exception as err:
@@ -146,38 +165,62 @@ class AlpacaBroker:
     def get_positions(self):
         """Get current positions"""
         try:
-            positions = self.api.list_positions()
+            if not self.trading_client:
+                raise ValueError("Trading client not initialized")
+                
+            positions = self.trading_client.get_all_positions()
             return {
                 "positions": [
                     {
                         "instrument": pos.symbol,
-                        "units": float(pos.qty),
-                        "current_price": float(pos.current_price),
-                        "unrealized_pl": float(pos.unrealized_pl)
+                        "units": str(pos.qty),
+                        "current_price": str(pos.current_price),
+                        "unrealized_pl": str(pos.unrealized_pl),
+                        "side": "long" if float(pos.qty) > 0 else "short",
+                        "avg_entry_price": str(pos.avg_entry_price)
                     } for pos in positions
                 ]
             }
         except Exception as err:
-            return {"error": f"Failed to get positions: {str(err)}"}
+            logger.error(f"Failed to get positions: {str(err)}")
+            return {"error": str(err)}
 
     def close_position(self, instrument):
         """Close a position for given instrument"""
         try:
-            response = self.api.close_position(instrument.replace('_', ''))
+            if not self.trading_client:
+                raise ValueError("Trading client not initialized")
+                
+            # Clean up instrument name
+            symbol = instrument.replace('_', '')
+            
+            # Get position details before closing
+            position = next((p for p in self.trading_client.get_all_positions() if p.symbol == symbol), None)
+            if not position:
+                raise ValueError(f"No open position found for {symbol}")
+            
+            # Close the position
+            response = self.trading_client.close_position(symbol)
+            
             return {
                 "orderFillTransaction": {
                     "id": response.id,
                     "instrument": response.symbol,
-                    "units": response.qty,
-                    "time": response.submitted_at.isoformat()
+                    "units": str(response.qty),
+                    "time": response.submitted_at.isoformat() if response.submitted_at else None,
+                    "type": "POSITION_CLOSE"
                 }
             }
         except Exception as err:
-            return {"error": f"Failed to close position: {str(err)}"}
+            logger.error(f"Failed to close position: {str(err)}")
+            return {"error": str(err)}
 
     def get_candlestick_data(self, instrument, timeframe="1Min", limit=100):
         """Get candlestick data for an instrument"""
         try:
+            if not self.data_client:
+                raise ValueError("Data client not initialized")
+                
             # Convert OANDA timeframe to Alpaca timeframe
             timeframe_map = {
                 "M1": "1Min",
@@ -190,27 +233,30 @@ class AlpacaBroker:
             }
             
             alpaca_timeframe = timeframe_map.get(timeframe, timeframe)
-            bars = self.api.get_barset(
-                instrument.replace('_', ''),
-                alpaca_timeframe,
+            
+            # Get historical bars
+            bars = self.data_client.get_stock_bars(
+                symbol=instrument.replace('_', ''),
+                timeframe=alpaca_timeframe,
                 limit=limit
-            )
+            ).data
             
             return {
                 "candles": [
                     {
-                        "time": bar.t.isoformat(),
-                        "volume": bar.v,
+                        "time": bar.timestamp.isoformat(),
+                        "volume": str(bar.volume),
                         "mid": {
-                            "o": str(bar.o),
-                            "h": str(bar.h),
-                            "l": str(bar.l),
-                            "c": str(bar.c)
+                            "o": str(bar.open),
+                            "h": str(bar.high),
+                            "l": str(bar.low),
+                            "c": str(bar.close)
                         }
-                    } for bar in bars[instrument.replace('_', '')]
+                    } for bar in bars
                 ]
             }
         except Exception as err:
+            logger.error(f"Failed to fetch candlestick data: {str(err)}")
             raise ValueError(f"Failed to fetch candlestick data: {str(err)}")
 
     def get_trades(self):

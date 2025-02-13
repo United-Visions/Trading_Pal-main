@@ -11,56 +11,38 @@ class NavigationManager {
         this.setupChartHandlers();
     }
 
-    setupEventListeners() {
-        if (this.menuToggle) {
-            this.menuToggle.addEventListener('click', () => this.toggleSidebar());
-        }
-
-        if (this.chartsTab) {
-            this.chartsTab.addEventListener('click', () => this.toggleChartsView());
-        }
-
-        document.addEventListener('click', (e) => this.handleOutsideClick(e));
-    }
-
-    toggleSidebar() {
-        const isHidden = this.sidebar.classList.contains('-translate-x-full');
+    setupChartHandlers() {
+        console.log('Setting up chart handlers');
         
-        gsap.to(this.sidebar, {
-            x: isHidden ? '0%' : '-100%',
-            duration: 0.3,
-            ease: 'power2.inOut'
-        });
-
-        if (isHidden) {
-            gsap.from(this.sidebar, {
-                opacity: 0,
-                duration: 0.3
+        if (this.chartsTab) {
+            this.chartsTab.addEventListener('click', () => {
+                console.log('Charts tab clicked');
+                if (this.chartsContainer) {
+                    const isHidden = this.chartsContainer.classList.contains('hidden');
+                    
+                    if (isHidden) {
+                        this.chartsContainer.classList.remove('hidden');
+                        this.chartsContainer.classList.add('w-full');
+                        if (window.chartManager) {
+                            window.chartManager.initializeChart();
+                        }
+                    } else {
+                        this.chartsContainer.classList.add('hidden');
+                        this.chartsContainer.classList.remove('w-full');
+                    }
+                } else {
+                    console.error('Charts container not found');
+                }
             });
         }
-    }
 
-    handleOutsideClick(e) {
-        if (window.innerWidth < 1024) {
-            const isOutside = !this.sidebar?.contains(e.target) && !this.menuToggle?.contains(e.target);
-            if (isOutside && !this.sidebar?.classList.contains('-translate-x-full')) {
-                gsap.to(this.sidebar, {
-                    x: '-100%',
-                    duration: 0.3,
-                    ease: 'power2.inOut'
-                });
-            }
+        if (this.closeChartsBtn) {
+            this.closeChartsBtn.addEventListener('click', () => {
+                console.log('Close charts clicked');
+                this.chartsContainer.classList.add('hidden');
+                this.chartsContainer.classList.remove('w-full');
+            });
         }
-    }
-
-    navigate(path) {
-        gsap.to('body', {
-            opacity: 0,
-            duration: 0.3,
-            onComplete: () => {
-                window.location.href = path;
-            }
-        });
     }
 
     setupResizeHandler() {
@@ -69,69 +51,35 @@ class NavigationManager {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 if (window.innerWidth >= 1024) {
-                    gsap.set(this.sidebar, {
-                        x: '0%',
-                        clearProps: 'all'
-                    });
+                    this.sidebar.classList.remove('-translate-x-full');
                 }
             }, 250);
         });
     }
 
-    setupChartHandlers() {
-        const chartsTab = document.getElementById('charts-tab');
-        const chartsContainer = document.getElementById('charts-container');
-        const closeChartsBtn = document.getElementById('close-charts');
-
-        if (chartsTab) {
-            chartsTab.addEventListener('click', () => {
-                console.log('Charts tab clicked');  // Debug log
-                const container = document.getElementById('charts-container');
-                const currentWidth = container.style.width;
-                
-                if (currentWidth === '0px' || !currentWidth) {
-                    container.style.width = '50%';
-                    if (window.chartManager) {
-                        window.chartManager.refreshCharts?.();
-                    }
-                } else {
-                    container.style.width = '0px';
-                }
-            });
+    setupEventListeners() {
+        if (this.menuToggle) {
+            this.menuToggle.addEventListener('click', () => this.toggleSidebar());
         }
 
-        if (closeChartsBtn) {
-            closeChartsBtn.addEventListener('click', () => {
-                console.log('Close charts clicked');  // Debug log
-                chartsContainer.style.width = '0px';
-            });
-        }
+        document.addEventListener('click', (e) => this.handleOutsideClick(e));
     }
 
-    toggleChartsView() {
-        if (this.chartsContainer.classList.contains('w-0')) {
-            this.openChartsView();
-        } else {
-            this.closeChartsView();
-        }
+    toggleSidebar() {
+        this.sidebar.classList.toggle('-translate-x-full');
     }
 
-    openChartsView() {
-        // Use a more modest default width
-        this.chartsContainer.style.width = '400px';
-        // Trigger chart refresh
-        if (window.chartManager) {
-            window.chartManager.updateChart();
+    handleOutsideClick(e) {
+        if (window.innerWidth < 1024) {
+            const isOutside = !this.sidebar?.contains(e.target) && !this.menuToggle?.contains(e.target);
+            if (isOutside && !this.sidebar?.classList.contains('-translate-x-full')) {
+                this.sidebar.classList.add('-translate-x-full');
+            }
         }
-    }
-
-    closeChartsView() {
-        this.chartsContainer.classList.remove('w-[600px]');
-        this.chartsContainer.classList.add('w-0');
     }
 }
 
-// Initialize navigation
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing NavigationManager');
     window.navigationManager = new NavigationManager();
 });

@@ -11,6 +11,7 @@ class ChatManager {
         };
         
         this.conversationHistory = [];
+        this.currentConversationId = null;
         this.initializeEventListeners();
         this.loadConversationHistory();
     }
@@ -38,12 +39,6 @@ class ChatManager {
         });
     }
 
-    loadConversationHistory() {
-        // Define the method to load conversation history
-        console.log('Loading conversation history...');
-        // Implementation here...
-    }
-
     async handleSubmit(e) {
         e.preventDefault();
         const message = this.elements.userInput.value.trim();
@@ -56,7 +51,6 @@ class ChatManager {
             const selectedBroker = localStorage.getItem('selectedBroker') || 'oanda';
             console.log('[ChatManager] Using broker:', selectedBroker);
             
-            // Format conversation history
             const recentHistory = this.conversationHistory
                 .slice(-5)
                 .map(msg => ({
@@ -77,6 +71,8 @@ class ChatManager {
                 }
             );
 
+            console.log('[ChatManager] Response received:', response.data);
+
             if (response.data.error) {
                 throw new Error(response.data.error);
             }
@@ -84,13 +80,15 @@ class ChatManager {
             // Add message to history
             this.conversationHistory.push({
                 role: "user",
-                content: message
+                content: message,
+                timestamp: new Date().toISOString()
             });
 
             // Add response to history
             this.conversationHistory.push({
                 role: "assistant",
-                content: response.data.response
+                content: response.data.response,
+                timestamp: new Date().toISOString()
             });
 
             // Display messages
@@ -125,52 +123,31 @@ class ChatManager {
         }
     }
 
-    addMessage(text, role) {
-        const bubble = document.createElement('div');
-        bubble.className = `p-4 mb-4 rounded-xl ${this.getMessageClass(role)}`;
-        
-        if (role === 'system') {
-            bubble.innerHTML = `
-                <div class="flex items-center">
-                    <div class="animate-spin mr-2">
-                        <i class="fas fa-circle-notch text-primary-400"></i>
-                    </div>
-                    <div>${text}</div>
-                </div>
-            `;
-        } else {
-            bubble.innerHTML = `
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${role === 'user' ? 'bg-primary-500' : 'bg-secondary-500'} 
-                         flex items-center justify-center">
-                        <i class="fas ${role === 'user' ? 'fa-user' : 'fa-robot'}"></i>
-                    </div>
-                    <div class="flex-grow overflow-x-auto">
-                        <pre class="message-text whitespace-pre-wrap"><code>${text}</code></pre>
-                    </div>
-                </div>
-            `;
+    async saveConversation(message, response) {
+        try {
+            const conversationData = {
+                messages: [{
+                    content: message,
+                    response: response,
+                    timestamp: new Date().toISOString()
+                }],
+                id: this.currentConversationId
+            };
+
+            const result = await axios.post('/api/v1/store_conversation', {
+                conversation_data: conversationData
+            });
+
+            if (result.data.id) {
+                this.currentConversationId = result.data.id;
+            }
+
+            console.log('[ChatManager] Conversation saved:', result.data);
+            return result.data;
+        } catch (error) {
+            console.error('[ChatManager] Failed to save conversation:', error);
+            throw error;
         }
-
-        gsap.set(bubble, { opacity: 0, y: 20 });
-        this.elements.chatHistory.appendChild(bubble);
-        this.elements.chatHistory.scrollTop = this.elements.chatHistory.scrollHeight;
-
-        gsap.to(bubble, {
-            opacity: 1,
-            y: 0,
-            duration: 0.3,
-            ease: 'power2.out'
-        });
-    }
-
-    getMessageClass(role) {
-        const classes = {
-            user: 'bg-dark-800/50 border-l-4 border-primary-500',
-            assistant: 'bg-dark-800/30 border-l-4 border-secondary-500',
-            system: 'bg-dark-800/20 border border-primary-500/20'
-        };
-        return classes[role] || classes.assistant;
     }
 
     startNewChat() {
@@ -209,10 +186,10 @@ class ChatManager {
                     opacity: 1,
                     duration: 0.3
                 });
+                // Reset current conversation ID when starting new chat
+                this.currentConversationId = null;
             }
         });
-        
-        this.saveConversationToStorage();
     }
 
     setupHistoryButtonListeners(button) {
@@ -262,6 +239,54 @@ class ChatManager {
         });
     }
 
+    addMessage(text, role) {
+        const bubble = document.createElement('div');
+        bubble.className = `p-4 mb-4 rounded-xl ${this.getMessageClass(role)}`;
+        
+        if (role === 'system') {
+            bubble.innerHTML = `
+                <div class="flex items-center">
+                    <div class="animate-spin mr-2">
+                        <i class="fas fa-circle-notch text-primary-400"></i>
+                    </div>
+                    <div>${this.sanitize(text)}</div>
+                </div>
+            `;
+        } else {
+            bubble.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${role === 'user' ? 'bg-primary-500' : 'bg-secondary-500'} 
+                         flex items-center justify-center">
+                        <i class="fas ${role === 'user' ? 'fa-user' : 'fa-robot'}"></i>
+                    </div>
+                    <div class="flex-grow overflow-x-auto">
+                        <pre class="message-text whitespace-pre-wrap"><code>${this.sanitize(text)}</code></pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        gsap.set(bubble, { opacity: 0, y: 20 });
+        this.elements.chatHistory.appendChild(bubble);
+        this.elements.chatHistory.scrollTop = this.elements.chatHistory.scrollHeight;
+
+        gsap.to(bubble, {
+            opacity: 1,
+            y: 0,
+            duration: 0.3,
+            ease: 'power2.out'
+        });
+    }
+
+    getMessageClass(role) {
+        const classes = {
+            user: 'bg-dark-800/50 border-l-4 border-primary-500',
+            assistant: 'bg-dark-800/30 border-l-4 border-secondary-500',
+            system: 'bg-dark-800/20 border border-primary-500/20'
+        };
+        return classes[role] || classes.assistant;
+    }
+
     sanitize(input) {
         const map = {
             '&': '&amp;',
@@ -271,20 +296,6 @@ class ChatManager {
             "'": '&#039;'
         };
         return String(input).replace(/[&<>"']/g, (m) => map[m]);
-    }
-
-    async saveConversation(message, response) {
-        try {
-            await axios.post('/api/v1/store_conversation', {
-                conversation_data: [{
-                    content: message,
-                    response: response,
-                    timestamp: new Date().toISOString()
-                }]
-            });
-        } catch (error) {
-            console.error('Failed to save conversation:', error);
-        }
     }
 
     showLoadingIndicator() {
@@ -304,8 +315,45 @@ class ChatManager {
             }
         });
     }
+
+    async loadConversationHistory() {
+        try {
+            const response = await axios.get('/api/v1/conversation_history');
+            const conversations = response.data.conversations || [];
+            conversations.forEach(conv => {
+                // Create history buttons for each conversation
+                this.createHistoryButton(conv);
+            });
+        } catch (error) {
+            console.error('[ChatManager] Failed to load conversation history:', error);
+        }
+    }
+
+    createHistoryButton(conversation) {
+        const button = document.createElement('button');
+        button.className = 'w-full flex justify-between items-center p-3 mb-2 rounded-xl ' +
+                          'bg-dark-800/30 hover:bg-dark-800/50 transition-all duration-300';
+        
+        const timestamp = new Date(conversation.timestamp).toLocaleTimeString();
+        button.innerHTML = `
+            <span class="flex-grow text-center text-dark-200">
+                ${conversation.title || timestamp}
+            </span>
+            <div class="flex space-x-2">
+                <i class="fas fa-edit text-primary-400 edit-icon cursor-pointer"></i>
+                <i class="fas fa-trash text-danger-500 delete-icon cursor-pointer"></i>
+            </div>
+        `;
+
+        button.dataset.conversationId = conversation.id;
+        button.dataset.history = conversation.messages;
+        this.setupHistoryButtonListeners(button);
+        
+        this.elements.conversationHistory.appendChild(button);
+    }
 }
 
+// Initialize chat manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.chatManager = new ChatManager();
 });
