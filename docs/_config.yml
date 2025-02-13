@@ -1,0 +1,11 @@
+title: Trading Pal
+email: your-email@example.com
+description: A trading platform for monitoring and managing financial assets.
+baseurl: "/docs"
+url: "" 
+twitter_username: jekyllrb
+github_username:  jekyll
+
+theme: minima
+plugins:
+  - jekyll-feed
