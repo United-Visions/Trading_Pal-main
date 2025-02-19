@@ -1,5 +1,109 @@
 ---
 ---
-@import "minima";
 
-// Add any custom styles below this line
+// Custom styles
+.content {
+    pre {
+        background: #1a1a1a;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1.5rem 0;
+    }
+
+    code {
+        color: #e83e8c;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: #fff;
+    }
+
+    p {
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+    }
+}
+
+.sidebar {
+    position: sticky;
+    top: 2rem;
+    
+    .list-group-item {
+        &:hover {
+            background-color: #2d2d2d !important;
+        }
+        
+        &.active {
+            background-color: #0d6efd !important;
+        }
+    }
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+
+// API endpoint styling
+.api-endpoint {
+    background: #2d2d2d;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    
+    .method {
+        color: #0d6efd;
+        font-weight: bold;
+    }
+    
+    .path {
+        color: #28a745;
+    }
+}
+
+// Documentation sections
+.doc-section {
+    margin-bottom: 3rem;
+    
+    .section-title {
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+// Table styling
+table {
+    width: 100%;
+    margin-bottom: 1rem;
+    background-color: #2d2d2d;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    
+    th, td {
+        padding: 1rem;
+        border-bottom: 1px solid #1a1a1a;
+    }
+    
+    th {
+        background-color: #1a1a1a;
+        color: #fff;
+    }
+}
+
+// Code block improvements
+.language-json {
+    .token.property {
+        color: #9cdcfe;
+    }
+    .token.string {
+        color: #ce9178;
+    }
+    .token.number {
+        color: #b5cea8;
+    }
+    .token.boolean {
+        color: #569cd6;
+    }
+}

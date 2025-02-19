@@ -1,40 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Pal Documentation - Backtesting</title>
-</head>
-<body>
-  <div id="content">
-    <h1>Trading Pal Backtesting and Natural Language Trading Logic</h1>
-    <p>Trading Pal's backtesting engine uses historical market data to simulate trading strategies. This document details the backtesting process and how to interpret the results.</p>
+---
+layout: default
+title: Backtesting
+---
 
-    <h2>Backtesting Process</h2>
-    <ol>
-        <li><strong>Data Acquisition:</strong> The backtesting engine retrieves historical market data from the data server.</li>
-        <li><strong>Strategy Simulation:</strong> The engine simulates the specified trading strategy using the historical data.</li>
-        <li><strong>Performance Evaluation:</strong> The engine evaluates the performance of the strategy based on various metrics (e.g., Sharpe ratio, maximum drawdown).</li>
-        <li><strong>Results Presentation:</strong> The engine presents the results in a clear and concise format, including charts and tables.</li>
-    </ol>
+<div class="doc-section">
+    <h1 class="section-title">Trading Pal Backtesting Engine</h1>
+    <p class="lead">Trading Pal's advanced backtesting engine combines natural language processing with sophisticated market analysis to test trading strategies across multiple asset classes. Our AI-powered system enables traders to define strategies in plain English while providing comprehensive performance metrics and risk analysis.</p>
+</div>
 
-    <h2>Interpreting Results</h2>
-    <p>The backtesting results provide valuable insights into the performance of a trading strategy.  Key metrics to consider include:</p>
-    <ul>
-        <li><strong>Total Return:</strong> The overall profit or loss of the strategy.</li>
-        <li><strong>Sharpe Ratio:</strong> A measure of risk-adjusted return.</li>
-        <li><strong>Maximum Drawdown:</strong> The largest peak-to-trough decline in the strategy's value.</li>
-        <li><strong>Win Rate:</strong> The percentage of trades that were profitable.</li>
-    </ul>
+<div class="doc-section">
+    <h2 class="section-title">Natural Language Strategy Definition</h2>
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Example Strategy Commands</h4>
+        <pre><code class="language-text">"Buy when the 20-day moving average crosses above the 50-day moving average and RSI is below 70"
 
-    <h2>Examples</h2>
-    <h3>Backtesting Results</h3>
-    <pre><code>
-Total Return: 10%
-Sharpe Ratio: 1.5
-Maximum Drawdown: 5%
-Win Rate: 60%
-    </code></pre>
-  </div>
-</body>
-</html>
+"Sell if price drops below the lower Bollinger Band and volume is above the 20-day average"
+
+"Long entry when MACD histogram turns positive and price is above 200-day MA"
+
+"Place a buy order for 100 shares when RSI drops below 30"
+
+"Execute short position if price breaks below support with increased volume"</code></pre>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2 class="section-title">Multi-Market Testing</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Stocks (via Alpaca)</h5>
+                    <ul class="list-unstyled">
+                        <li>✓ US Equities</li>
+                        <li>✓ Real-time data</li>
+                        <li>✓ Historical prices</li>
+                        <li>✓ Volume analysis</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Forex (via OANDA)</h5>
+                    <ul class="list-unstyled">
+                        <li>✓ Major pairs</li>
+                        <li>✓ Minor pairs</li>
+                        <li>✓ Tick data</li>
+                        <li>✓ Spread analysis</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Crypto (via Alpaca)</h5>
+                    <ul class="list-unstyled">
+                        <li>✓ Major cryptocurrencies</li>
+                        <li>✓ 24/7 trading</li>
+                        <li>✓ Order book data</li>
+                        <li>✓ Market depth</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2 class="section-title">AI-Powered Analysis</h2>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Strategy Validation</h4>
+                    <p>Our AI agents validate trading strategies by analyzing:</p>
+                    <ul class="list-unstyled">
+                        <li>✓ Historical performance</li>
+                        <li>✓ Risk metrics</li>
+                        <li>✓ Market conditions</li>
+                        <li>✓ Correlation analysis</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Performance Metrics</h4>
+                    <pre><code class="language-json">{
+  "totalReturn": "25.8%",
+  "sharpeRatio": 1.85,
+  "maxDrawdown": "12.3%",
+  "winRate": "62.5%",
+  "profitFactor": 1.75,
+  "averageTrade": "$245.50",
+  "tradeCount": 156
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2 class="section-title">Advanced Features</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Multi-Broker Testing</h5>
+                    <p class="card-text">Test strategies across different brokers and markets simultaneously, with unified reporting and analysis.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">AI Strategy Optimization</h5>
+                    <p class="card-text">Machine learning algorithms optimize strategy parameters based on historical performance.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Risk Analysis</h5>
+                    <p class="card-text">Comprehensive risk assessment including VaR, correlation analysis, and stress testing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2 class="section-title">Natural Language Commands</h2>
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Available Commands</h4>
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>Command Type</th>
+                    <th>Example</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Strategy Definition</td>
+                    <td>"Buy when RSI is oversold and MACD crosses up"</td>
+                    <td>Define trading rules in plain English</td>
+                </tr>
+                <tr>
+                    <td>Performance Analysis</td>
+                    <td>"Show me the strategy performance for last month"</td>
+                    <td>Request specific performance metrics</td>
+                </tr>
+                <tr>
+                    <td>Risk Management</td>
+                    <td>"Set stop loss at 2% per trade"</td>
+                    <td>Configure risk parameters</td>
+                </tr>
+                <tr>
+                    <td>Portfolio Management</td>
+                    <td>"Optimize position sizes for maximum Sharpe ratio"</td>
+                    <td>Portfolio optimization commands</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="doc-section">
+    <h2 class="section-title">Integration with Trading Pal Agent</h2>
+    <div class="alert alert-warning">
+        <h4 class="alert-heading">AI Agent Capabilities</h4>
+        <p>The Trading Pal AI agent enhances backtesting by:</p>
+        <ul>
+            <li>Validating strategy logic and parameters</li>
+            <li>Suggesting optimizations based on historical performance</li>
+            <li>Monitoring for potential risks and correlations</li>
+            <li>Providing natural language insights and recommendations</li>
+            <li>Automating strategy deployment across multiple brokers</li>
+        </ul>
+    </div>
+</div>
