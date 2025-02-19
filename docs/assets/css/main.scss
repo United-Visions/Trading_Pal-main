@@ -1,12 +1,5 @@
-@charset "utf-8";
+---
+---
+@import "minima";
 
-
-// Custom variable overrides
-$primary: #007bff !default;
-$main-content-shadow: 2px 2px 5px rgba(0,0,0,0.1) !default;
-
-@import
-  "bootstrap/variables",
-  "bootstrap",
-  "syntax-highlighting",
-  "jekyll-doc-theme";
+// Add any custom styles below this line
