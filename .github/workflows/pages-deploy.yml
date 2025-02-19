@@ -38,7 +38,10 @@ jobs:
       - name: Test HTML
         run: |
           cd docs
-          bundle exec htmlproofer ./_site --disable-external --checks html,links,images,scripts --allow-hash-href
+          bundle exec htmlproofer ./_site \
+            --disable-external \
+            --checks html,links,images,scripts \
+            --allow-hash-href
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
