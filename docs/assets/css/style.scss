@@ -1,21 +1,11 @@
 ---
 ---
 
-@import "minima";
+@import
+  "minima/skins/dark",
+  "minima/initialize";
 
-// Dark theme colors
-$background-color: #1a1a1a;
-$text-color: #f8f9fa;
-$brand-color: #0d6efd;
-$grey-color: #868e96;
-$grey-color-light: lighten($grey-color, 40%);
-$grey-color-dark: darken($grey-color, 25%);
-
-body {
-  background-color: $background-color;
-  color: $text-color;
-}
-
+// Custom styles
 .content {
   pre {
     background: #2d2d2d;

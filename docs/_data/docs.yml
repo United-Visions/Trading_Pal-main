@@ -1,11 +1,6 @@
-- title: Getting Started
+- title: Documentation
   docs:
-  - home
-  - themes
-  - customization
-
-- title: Examples
-  docs:
-  - cheatsheet
-  - font-awesome
-  - bootstrap
+  - index
+  - data_server
+  - charts_display
+  - backtesting

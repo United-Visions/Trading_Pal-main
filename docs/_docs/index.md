@@ -1,50 +1,60 @@
 ---
-title: Welcome
-permalink: /docs/home/
-redirect_from: /docs/index.html
+title: Welcome to Trading Pal
+permalink: /docs/index/
 ---
 
-## Getting started
+## Overview
 
-[GitHub Pages](https://pages.github.com) can automatically generate and serve the website for you.
-Let's say you have a username/organisation `my-org` and project `my-proj`; if you locate Jekyll source under `docs` folder of master branch in your repo `github.com/my-org/my-proj`, the website will be served on `my-org.github.io/my-proj`.
-The good thing about coupling your documentation with the source repo is, whenever you merge features with regarding content to master branch, it will also be published on the webpage instantly.
+Trading Pal is an advanced AI-powered trading platform that offers multi-broker integration and comprehensive market analysis capabilities. Our platform combines cutting-edge technology with user-friendly interfaces to provide traders with powerful tools for market analysis and automated trading.
 
-1. Just [download the source](https://github.com/aksakalli/jekyll-doc-theme/archive/gh-pages.zip) into your repo under `docs` folder.
-2. Edit site settings in  `_config.yml` file according to your project. !!! `baseurl` should be your website's relative URI like `/my-proj` !!!
-3. Replace `favicon.ico` and `assets/img/logonav.png` with your own logo.
+## Key Features
 
-## Writing content
+### Multi-Broker Integration
+- Support for multiple brokers including Alpaca and Oanda
+- Unified interface for managing different trading accounts
+- Seamless order execution across platforms
 
-### Docs
+### Data Server
+- Real-time market data streaming
+- Historical data analysis
+- Custom data feeds integration
+- [Learn more about Data Server](/docs/data_server/)
 
-Docs are [collections](https://jekyllrb.com/docs/collections/) of pages stored under `_docs` folder. To create a new page:
+### Charts Display
+- Interactive technical analysis charts
+- Multiple timeframe support
+- Custom indicator implementation
+- [Learn more about Charts Display](/docs/charts_display/)
 
-**1.** Create a new Markdown as `_docs/my-page.md` and write [front matter](https://jekyllrb.com/docs/frontmatter/) & content such as:
+### Backtesting
+- Comprehensive strategy testing
+- Historical performance analysis
+- Risk assessment tools
+- [Learn more about Backtesting](/docs/backtesting/)
 
-```
----
-title: My Page
-permalink: /docs/my-page/
----
+## Getting Started
 
-Hello World!
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/United-Visions/Trading_Pal-main.git
+   ```
 
-**2.** Add the pagename to `_data/docs.yml` file in order to list in docs navigation panel:
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```
-- title: My Group Title
-  docs:
-  - my-page
-```
+3. Configure your broker settings in the user configuration file
 
-### Blog posts
+4. Run the platform:
+   ```bash
+   python main.py
+   ```
 
-Add a new Markdown file such as `2017-05-09-my-post.md` and write the content similar to other post examples.
+## Contributing
 
-### Pages
+We welcome contributions to Trading Pal! Please read our [Contribution Guidelines](https://github.com/United-Visions/Trading_Pal-main/blob/main/CONTRIBUTION.md) for details on how to submit pull requests, report issues, and contribute to the project.
 
-The homepage is located under `index.html` file. You can change the content or design completely different welcome page for your taste. (You can use [bootstrap components](http://getbootstrap.com/components/))
+## License
 
-In order to add a new page, create a new `.html` or `.md` (markdown) file under root directory and link it in `_includes/topnav.html`.
+Trading Pal is licensed under the MIT License. See the [LICENSE](https://github.com/United-Visions/Trading_Pal-main/blob/main/LICENSE) file for details.

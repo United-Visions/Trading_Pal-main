@@ -2,20 +2,18 @@ title: Trading Pal
 description: An advanced AI-powered trading platform with multi-broker integration and comprehensive market analysis capabilities
 baseurl: "/Trading_Pal-main"
 url: "https://united-visions.github.io"
+repository: United-Visions/Trading_Pal-main
+
+# Theme settings
+remote_theme: aksakalli/jekyll-doc-theme@gh-pages
+bootwatch: slate
 
 # Build settings
 markdown: kramdown
-theme: minima
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
   - jekyll-sitemap
-
-# Theme settings
-minima:
-  skin: dark
-  social_links:
-    github: United-Visions/Trading_Pal-main
 
 # Collections
 collections:
@@ -29,12 +27,12 @@ defaults:
       path: ""
       type: "docs"
     values:
-      layout: "default"
+      layout: "docs"
   - scope:
       path: ""
       type: "pages"
     values:
-      layout: "default"
+      layout: "page"
 
 # Navigation
 header_pages:
