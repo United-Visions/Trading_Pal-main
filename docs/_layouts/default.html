@@ -1,63 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title }} - Trading Pal Documentation</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
-</head>
-<body class="bg-dark text-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ '/' | relative_url }}">Trading Pal</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ '/data_server.html' | relative_url }}">Data Server</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ '/charts_display.html' | relative_url }}">Charts</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ '/backtesting.html' | relative_url }}">Backtesting</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <main class="container py-5">
-        <div class="row">
-            <div class="col-md-3">
-                <div class="sidebar sticky-top">
-                    <div class="list-group">
-                        <a href="{{ '/data_server.html' | relative_url }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">Data Server</a>
-                        <a href="{{ '/charts_display.html' | relative_url }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">Charts Display</a>
-                        <a href="{{ '/backtesting.html' | relative_url }}" class="list-group-item list-group-item-action bg-dark text-light border-secondary">Backtesting</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-9">
-                <div class="content">
-                    {{ content }}
-                </div>
-            </div>
-        </div>
+<html lang="{{ page.lang | default: site.lang | default: "en" }}">
+  {%- include head.html -%}
+  <body>
+    {%- include header.html -%}
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        {{ content }}
+      </div>
     </main>
-
-    <footer class="footer mt-auto py-3 bg-dark border-top border-secondary">
-        <div class="container text-center">
-            <span class="text-muted">Trading Pal Documentation</span>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-json.min.js"></script>
-</body>
+    {%- include footer.html -%}
+  </body>
 </html>
