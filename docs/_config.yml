@@ -1,11 +1,86 @@
 title: Trading Pal
-email: your-email@example.com
+tagline: A trading platform for monitoring and managing financial assets
 description: A trading platform for monitoring and managing financial assets.
-baseurl: "/docs"
-url: "" 
-twitter_username: jekyllrb
-github_username:  jekyll
-
 theme: jekyll-theme-chirpy
+baseurl: "/Trading_Pal-main"
+url: "https://united-visions.github.io"
+github:
+  username: United-Visions
+
+theme_mode: dark
+
 plugins:
   - jekyll-feed
+  - jekyll-paginate
+  - jekyll-seo-tag
+  - jekyll-archives
+  - jekyll-sitemap
+
+# The language of the webpage
+lang: en
+
+# Change to your timezone
+timezone: UTC
+
+# Pagination
+paginate: 10
+
+# Jekyll Compose Defaults
+jekyll_compose:
+  default_front_matter:
+    drafts:
+      description:
+      image:
+      category: []
+      tags: []
+    posts:
+      description:
+      image:
+      category: []
+      tags: []
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
+
+collections:
+  tabs:
+    output: true
+    sort_by: order
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      comments: true
+      toc: true
+  - scope:
+      path: _drafts
+    values:
+      comments: false
+  - scope:
+      path: ""
+      type: tabs
+    values:
+      layout: page
+      permalink: /:title/
+
+sass:
+  style: compressed
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  profile: false
+  blanklines: false
+  ignore:
+    envs: [development]
