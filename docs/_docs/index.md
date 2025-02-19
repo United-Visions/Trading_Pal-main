@@ -1,6 +1,6 @@
 ---
 title: Welcome to Trading Pal
-permalink: /docs/index/
+permalink: /docs/home/
 ---
 
 ## Overview
@@ -18,19 +18,19 @@ Trading Pal is an advanced AI-powered trading platform that offers multi-broker 
 - Real-time market data streaming
 - Historical data analysis
 - Custom data feeds integration
-- [Learn more about Data Server](/docs/data_server/)
+- [Learn more about Data Server](/docs/data_server)
 
 ### Charts Display
 - Interactive technical analysis charts
 - Multiple timeframe support
 - Custom indicator implementation
-- [Learn more about Charts Display](/docs/charts_display/)
+- [Learn more about Charts Display](/docs/charts_display)
 
 ### Backtesting
 - Comprehensive strategy testing
 - Historical performance analysis
 - Risk assessment tools
-- [Learn more about Backtesting](/docs/backtesting/)
+- [Learn more about Backtesting](/docs/backtesting)
 
 ## Getting Started
 

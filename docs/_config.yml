@@ -1,7 +1,7 @@
 title: Trading Pal
 description: An advanced AI-powered trading platform with multi-broker integration and comprehensive market analysis capabilities
-baseurl: "/Trading_Pal-main"
-url: "https://united-visions.github.io"
+baseurl: ""
+url: "https://united-visions.github.io/Trading_Pal-main"
 repository: United-Visions/Trading_Pal-main
 
 # Theme settings
@@ -19,7 +19,7 @@ plugins:
 collections:
   docs:
     output: true
-    permalink: /:collection/:path/
+    permalink: /docs/:name/
 
 # Default settings
 defaults:

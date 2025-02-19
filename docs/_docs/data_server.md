@@ -112,3 +112,5 @@ The experimental data server is continuously evolving with planned enhancements:
 - Advanced caching mechanisms
 - Machine learning data preprocessing
 - Custom indicator development API
+
+[Back to Documentation](/docs/home)

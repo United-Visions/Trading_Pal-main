@@ -1,29 +1,25 @@
-<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
-  {% for section in site.data.docs %}
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h4 class="panel-title">
-          <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse-{{forloop.index}}" aria-expanded="false" aria-controls="collapse-{{forloop.index}}">
-            {{ section.title }}
-          </a>
-        </h4>
-      </div>
-      {% assign collapsed = true %}
+{% assign docs = site.data.docs %}
+
+<div class="docs-nav">
+  {% for section in docs %}
+    <h5>{{ section.title }}</h5>
+    <ul>
       {% for item in section.docs %}
-        {% assign item_url = item | prepend:"/docs/" | append:"/" %}
-        {% if item_url == page.url %}
-          {% assign collapsed = false %}
+        {% assign doc_path = item | prepend: "/docs/" | append: "/" %}
+        {% assign doc = site.docs | where: "permalink", doc_path | first %}
+        {% if doc %}
+          <li{% if doc.url == page.url %} class="active"{% endif %}>
+            <a href="{{ doc.permalink | relative_url }}">{{ doc.title }}</a>
+          </li>
         {% endif %}
       {% endfor %}
-      <div class="panel-collapse{% if collapsed %} collapse{% endif %}" id="collapse-{{forloop.index}}" role="tabpanel" aria-label="Side Navigation">
-        <div class="list-group">
-          {% for item in section.docs %}
-            {% assign item_url = item | prepend:"/docs/" | append:"/" %}
-            {% assign p = site.docs | where:"url", item_url | first %}
-            <a class="list-group-item {% if item_url == page.url %}active{% endif %}" href="{{ p.url  | relative_url }}">{{ p.title }}</a>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
+    </ul>
   {% endfor %}
+</div>
+
+<div class="nav-footer">
+  <a href="{{ site.baseurl }}/">Home</a>
+  {% if page.url != "/docs/home/" %}
+    <a href="{{ site.baseurl }}/docs/home/">Documentation</a>
+  {% endif %}
 </div>

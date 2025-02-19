@@ -1,6 +1,6 @@
 - title: Documentation
   docs:
-  - index
+  - home
   - data_server
   - charts_display
   - backtesting

@@ -79,7 +79,7 @@ Control charts using natural language commands:
 - 💰 P&L tracking
 - 🎚️ Risk management overlays
 
-## Chart Configurations
+## Chart Configuration
 
 ```javascript
 // Example chart configuration
@@ -119,3 +119,5 @@ The charting system integrates with Trading Pal's core features:
 - Real-time position tracking
 - Custom indicator development
 - Chart-based backtesting
+
+[Back to Documentation](/docs/home)

@@ -94,3 +94,5 @@ The Trading Pal AI agent enhances backtesting by:
 - Monitoring for potential risks and correlations
 - Providing natural language insights and recommendations
 - Automating strategy deployment across multiple brokers
+
+[Back to Documentation](/docs/home)
