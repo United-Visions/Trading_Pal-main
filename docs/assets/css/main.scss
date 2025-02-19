@@ -1,21 +1,12 @@
----
-# Only the main Sass file needs front matter (the dashes are enough)
----
 @charset "utf-8";
 
-// Import partials from `sass_dir` (defaults to `_sass`)
+
+// Custom variable overrides
+$primary: #007bff !default;
+$main-content-shadow: 2px 2px 5px rgba(0,0,0,0.1) !default;
 
 @import
-  {% if site.bootwatch %}
-    "bootswatch/{{site.bootwatch | downcase}}/variables",
-  {% endif %}
-
+  "bootstrap/variables",
   "bootstrap",
-
-  {% if site.bootwatch %}
-    "bootswatch/{{site.bootwatch | downcase}}/bootswatch",
-  {% endif %}
-
   "syntax-highlighting",
-  "jekyll-doc-theme"
-;
+  "jekyll-doc-theme";
