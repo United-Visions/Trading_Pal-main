@@ -1,11 +1,7 @@
 ---
 ---
 
-@import
-  "minima/skins/dark",
-  "minima/initialize";
-
-// Custom styles
+// Custom styles to enhance jekyll-doc-theme
 .content {
   pre {
     background: #2d2d2d;
@@ -48,4 +44,37 @@
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
   }
+}
+
+// Additional styles for slate theme compatibility
+body {
+  background-color: #272b30;
+  color: #c8c8c8;
+}
+
+a {
+  color: #0d6efd;
+  &:hover {
+    color: #0a58ca;
+    text-decoration: none;
+  }
+}
+
+.table {
+  color: #c8c8c8;
+  background-color: #2d2d2d;
+  
+  th {
+    background-color: #1a1a1a;
+  }
+}
+
+pre {
+  background-color: #2d2d2d !important;
+  border: 1px solid #444;
+}
+
+code {
+  background-color: #2d2d2d;
+  color: #e83e8c;
 }
